@@ -24,6 +24,14 @@ Shader "RedMage/Cancerspace" {
 		_XShakeSpeed ("X Shake Speed", Float) = 100
 		_YShakeSpeed ("Y Shake Speed", Float) = 100
 		
+		[Header(RGB Splitting)]
+		_RedXShift ("Red X Shift", Float) = 0
+		_RedYShift ("Red Y Shift", Float) = 0
+		_GreenXShift ("Green X Shift", Float) = 0
+		_GreenYShift ("Green Y Shift", Float) = 0
+		_BlueXShift ("Blue X Shift", Float) = 0
+		_BlueYShift ("Blue Y Shift", Float) = 0
+		
 		[Header(Overlay)]
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		_OverlayColor ("Overlay Color", Color) = (1,1,1,1)
@@ -96,6 +104,10 @@ Shader "RedMage/Cancerspace" {
 			
 			float _MaxFalloff;
 			
+			float _RedXShift, _RedYShift;
+			float _GreenXShift, _GreenYShift;
+			float _BlueXShift, _BlueYShift;
+			
 			float3 hsv2rgb(float3 c) {
 				return ((clamp(abs(frac(c.x+float3(0,.666,.333))*6-3)-1,0,1)-1)*c.y+1)*c.z;
 			}
@@ -140,7 +152,13 @@ Shader "RedMage/Cancerspace" {
 				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + (i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling)));
 				
 				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
-				float4 grabCol = tex2D(_Garb, grabUV + displace);
+				
+				grabUV += displace;
+				
+				float red = tex2D(_Garb, grabUV + float2(_RedXShift, _RedYShift) / _Garb_TexelSize.zw);
+				float green = tex2D(_Garb, grabUV + float2(_GreenXShift, _GreenYShift) / _Garb_TexelSize.zw);
+				float blue = tex2D(_Garb, grabUV + float2(_BlueXShift, _BlueYShift) / _Garb_TexelSize.zw);
+				float4 grabCol = float4(red, green, blue, 1);
 				
 				grabCol.rgb = hsv2rgb(saturate(rgb2hsv(grabCol.rgb) * float3(1, _DesaturationAmount, 1)));
 				if (_Burn) grabCol.rgb = smoothstep(_BurnLow, _BurnHigh, grabCol.rgb);
