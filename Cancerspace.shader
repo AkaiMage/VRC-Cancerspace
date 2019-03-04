@@ -3,6 +3,9 @@ Shader "RedMage/Cancerspace" {
 		[Enum(UnityEngine.Rendering.CullMode)] _CullMode("Cull Mode", Float) = 0
 		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Int) = 4
 		
+		[Header(Falloff Settings)]
+		_MaxFalloff ("Falloff Range", Float) = 30
+		
 		[Header(Zoom Stuff)]
 		_Zoom ("Zoom", Float) = 1
 		[PowerSlider(5.0)] _Pixelation ("Pixelation", Range(0, 1)) = 0
@@ -37,8 +40,7 @@ Shader "RedMage/Cancerspace" {
 		_BurnHigh ("Color Burn High", Float) = 1
 	}
 	SubShader {
-		Tags { "RenderType"="Transparent" "Queue" = "Transparent+2" }
-		LOD 100
+		Tags { "Queue" = "Transparent+3" }
 		
 		Cull [_CullMode]
 		ZTest [_ZTest]
@@ -92,6 +94,8 @@ Shader "RedMage/Cancerspace" {
 			int _Burn;
 			float _BurnLow, _BurnHigh;
 			
+			float _MaxFalloff;
+			
 			float3 hsv2rgb(float3 c) {
 				return ((clamp(abs(frac(c.x+float3(0,.666,.333))*6-3)-1,0,1)-1)*c.y+1)*c.z;
 			}
@@ -116,6 +120,10 @@ Shader "RedMage/Cancerspace" {
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {
+				float3 originPoint = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
+				
+				if (dot(originPoint, originPoint) > _MaxFalloff * _MaxFalloff) discard;
+				
 				float3 viewSpace = mul(UNITY_MATRIX_V, i.posWorld.xyz - _WorldSpaceCameraPos);
 				float2 adjusted = viewSpace.xy / viewSpace.z;
 				float2 uv = 1.0 - adjusted * float2(_ScreenParams.z / _ScreenParams.w, 1);
