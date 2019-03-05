@@ -3,6 +3,9 @@ Shader "RedMage/Cancerspace" {
 		[Enum(UnityEngine.Rendering.CullMode)] _CullMode("Cull Mode", Float) = 0
 		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Int) = 4
 		
+		[Header(Target Object Settings)]
+		_Puffiness ("Puffiness", Float) = 0
+		
 		[Header(Falloff Settings)]
 		_MaxFalloff ("Falloff Range", Float) = 30
 		
@@ -64,6 +67,7 @@ Shader "RedMage/Cancerspace" {
 
 			struct appdata {
 				float4 vertex : POSITION;
+				float3 normal : NORMAL;
 			};
 
 			struct v2f {
@@ -108,6 +112,8 @@ Shader "RedMage/Cancerspace" {
 			float _GreenXShift, _GreenYShift;
 			float _BlueXShift, _BlueYShift;
 			
+			float _Puffiness;
+			
 			float3 hsv2rgb(float3 c) {
 				return ((clamp(abs(frac(c.x+float3(0,.666,.333))*6-3)-1,0,1)-1)*c.y+1)*c.z;
 			}
@@ -124,6 +130,7 @@ Shader "RedMage/Cancerspace" {
 			
 			v2f vert (appdata v) {
 				v2f o;
+				v.vertex.xyz += _Puffiness * v.normal;
 				o.pos = UnityObjectToClipPos(v.vertex);
 				o.posWorld = mul(unity_ObjectToWorld, v.vertex);
 				o.projPos = ComputeScreenPos(o.pos);
