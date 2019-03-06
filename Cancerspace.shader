@@ -162,9 +162,9 @@ Shader "RedMage/Cancerspace" {
 				
 				grabUV += displace;
 				
-				float red = tex2D(_Garb, grabUV + float2(_RedXShift, _RedYShift) / _Garb_TexelSize.zw);
-				float green = tex2D(_Garb, grabUV + float2(_GreenXShift, _GreenYShift) / _Garb_TexelSize.zw);
-				float blue = tex2D(_Garb, grabUV + float2(_BlueXShift, _BlueYShift) / _Garb_TexelSize.zw);
+				float red = tex2D(_Garb, grabUV + float2(_RedXShift, _RedYShift) / _Garb_TexelSize.zw).r;
+				float green = tex2D(_Garb, grabUV + float2(_GreenXShift, _GreenYShift) / _Garb_TexelSize.zw).g;
+				float blue = tex2D(_Garb, grabUV + float2(_BlueXShift, _BlueYShift) / _Garb_TexelSize.zw).b;
 				float4 grabCol = float4(red, green, blue, 1);
 				
 				grabCol.rgb = hsv2rgb(saturate(rgb2hsv(grabCol.rgb) * float3(1, _DesaturationAmount, 1)));
