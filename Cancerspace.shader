@@ -50,6 +50,9 @@ Shader "RedMage/Cancerspace" {
 		[Toggle] _Burn ("Enabled", Int) = 0
 		_BurnLow ("Color Burn Low", Float) = 0
 		_BurnHigh ("Color Burn High", Float) = 1
+		
+		[Header(Misc)]
+		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode("Mirror Reflectance", Int) = 0
 	}
 	SubShader {
 		Tags { "Queue" = "Transparent+3" }
@@ -116,6 +119,8 @@ Shader "RedMage/Cancerspace" {
 			
 			float _Puffiness;
 			
+			int _MirrorMode;
+			
 			float3 hsv2rgb(float3 c) {
 				return ((clamp(abs(frac(c.x+float3(0,.666,.333))*6-3)-1,0,1)-1)*c.y+1)*c.z;
 			}
@@ -130,6 +135,10 @@ Shader "RedMage/Cancerspace" {
 				return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
 			}
 			
+			bool isInMirror() {
+				return unity_CameraProjection[2][0] != 0.f || unity_CameraProjection[2][1] != 0.f;
+			}
+			
 			v2f vert (appdata v) {
 				v2f o;
 				v.vertex.xyz += _Puffiness * v.normal;
@@ -141,6 +150,8 @@ Shader "RedMage/Cancerspace" {
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {
+				if (_MirrorMode == 1 && isInMirror() || _MirrorMode == 2 && !isInMirror()) discard;
+			
 				float3 originPoint = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
 				
 				if (dot(originPoint, originPoint) > _MaxFalloff * _MaxFalloff) discard;
