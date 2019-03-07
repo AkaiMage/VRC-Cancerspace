@@ -39,6 +39,7 @@ Shader "RedMage/Cancerspace" {
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		_OverlayColor ("Overlay Color", Color) = (1,1,1,1)
 		_BlendAmount ("Blend Amount", Range(0,1)) = 0.5
+		[Toggle] _Multiply ("Multiply", Int) = 0
 		
 		[Header(Screen Color Adjustments)]
 		_DesaturationAmount ("Saturation Multiplier", Range(0,1)) = 1
@@ -93,6 +94,7 @@ Shader "RedMage/Cancerspace" {
 			
 			float _XWobbleAmount, _YWobbleAmount, _XWobbleTiling, _YWobbleTiling, _XWobbleSpeed, _YWobbleSpeed;
 			
+			int _Multiply;
 			float _BlendAmount;
 			
 			float _InversionAmount;
@@ -171,7 +173,15 @@ Shader "RedMage/Cancerspace" {
 				if (_Burn) grabCol.rgb = smoothstep(_BurnLow, _BurnHigh, grabCol.rgb);
 				
 				float4 inverted = lerp(grabCol, float4(1 - grabCol.rgb, grabCol.a), _InversionAmount);
-				float4 blended = lerp(inverted, color * _Color, _BlendAmount);
+				
+				float4 blended = float4(1,1,1,1);
+				
+				if (_Multiply) {
+					blended = lerp(inverted, inverted * color * _Color, _BlendAmount);
+				} else {
+					blended = lerp(inverted, color * _Color, _BlendAmount);
+				}
+				
 				
 				return blended * _Color;
 			}
