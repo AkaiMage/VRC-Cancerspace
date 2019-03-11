@@ -190,7 +190,11 @@ Shader "RedMage/Cancerspace" {
 				grabUV *= _Zoom;
 				grabUV += i.posOrigin.xy / i.posOrigin.w;
 				
-				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + (i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling)));
+				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
+				#if defined(USING_STEREO_MATRICES)
+				wobbleTiling *= float2(.5, 1);
+				#endif
+				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + wobbleTiling);
 				
 				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
 				
