@@ -39,7 +39,7 @@ Shader "RedMage/Cancerspace" {
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		_OverlayColor ("Overlay Color", Color) = (1,1,1,1)
 		_BlendAmount ("Blend Amount", Range(0,1)) = 0.5
-		[Toggle] _Multiply ("Multiply", Int) = 0
+		[Toggle(_)] _Multiply ("Multiply", Int) = 0
 		
 		[Header(Screen Color Adjustments)]
 		_DesaturationAmount ("Saturation Multiplier", Range(0,1)) = 1
@@ -47,9 +47,16 @@ Shader "RedMage/Cancerspace" {
 		_Color ("Screen Color", Color) = (1,1,1,1)
 		
 		[Header(Color Burning)]
-		[Toggle] _Burn ("Enabled", Int) = 0
+		[Toggle(_)] _Burn ("Enabled", Int) = 0
 		_BurnLow ("Color Burn Low", Float) = 0
 		_BurnHigh ("Color Burn High", Float) = 1
+		
+		[Header(Screen Transformation)]
+		_ScreenXMultiplier ("Screen X Multiplier (RGB)", Vector) = (1,1,1,1)
+		_ScreenYMultiplier ("Screen Y Multiplier (RGB)", Vector) = (1,1,1,1)
+		_ScreenRotationOriginX ("Screen Rotation Origin X (RGB)", Vector) = (.5,.5,.5,0)
+		_ScreenRotationOriginY ("Screen Rotation Origin Y (RGB)", Vector) = (.5,.5,.5,0)
+		_RotationAngle ("Screen Rotation Angle (RGB)", Vector) = (0,0,0,0)
 		
 		[Header(Misc)]
 		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode("Mirror Reflectance", Int) = 0
@@ -121,6 +128,14 @@ Shader "RedMage/Cancerspace" {
 			
 			int _MirrorMode;
 			
+			float4 _ScreenXMultiplier;
+			float4 _ScreenYMultiplier;
+			
+			float4 _ScreenRotationOriginX;
+			float4 _ScreenRotationOriginY;
+			
+			float4 _RotationAngle;
+			
 			float3 hsv2rgb(float3 c) {
 				return ((clamp(abs(frac(c.x+float3(0,.666,.333))*6-3)-1,0,1)-1)*c.y+1)*c.z;
 			}
@@ -133,6 +148,12 @@ Shader "RedMage/Cancerspace" {
 				float d = q.x - min(q.w, q.y);
 				float e = 1.0e-10;
 				return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+			}
+			
+			float2 rotate(float2 uv, float angle) {
+				float s, c;
+				sincos(angle, s, c);
+				return mul(float2x2(c, s, -s, c), uv);
 			}
 			
 			bool isInMirror() {
@@ -175,9 +196,9 @@ Shader "RedMage/Cancerspace" {
 				
 				grabUV += displace;
 				
-				float red = tex2D(_Garb, grabUV + float2(_RedXShift, _RedYShift) / _Garb_TexelSize.zw).r;
-				float green = tex2D(_Garb, grabUV + float2(_GreenXShift, _GreenYShift) / _Garb_TexelSize.zw).g;
-				float blue = tex2D(_Garb, grabUV + float2(_BlueXShift, _BlueYShift) / _Garb_TexelSize.zw).b;
+				float red = tex2D(_Garb, frac(float2(_ScreenXMultiplier.r * _ScreenXMultiplier.a, _ScreenYMultiplier.r * _ScreenYMultiplier.a) * (rotate(grabUV + float2(_RedXShift, _RedYShift) / _Garb_TexelSize.zw - float2(_ScreenRotationOriginX.r + _ScreenRotationOriginX.a, _ScreenRotationOriginY.r + _ScreenRotationOriginY.a), _RotationAngle.r + _RotationAngle.a) + float2(_ScreenRotationOriginX.r + _ScreenRotationOriginX.a, _ScreenRotationOriginY.r + _ScreenRotationOriginY.a)))).r;
+				float green = tex2D(_Garb, frac(float2(_ScreenXMultiplier.g * _ScreenXMultiplier.a, _ScreenYMultiplier.g * _ScreenYMultiplier.a) * (rotate(grabUV + float2(_GreenXShift, _GreenYShift) / _Garb_TexelSize.zw - float2(_ScreenRotationOriginX.g + _ScreenRotationOriginX.a, _ScreenRotationOriginY.g + _ScreenRotationOriginY.a), _RotationAngle.g + _RotationAngle.a) + float2(_ScreenRotationOriginX.g + _ScreenRotationOriginX.a, _ScreenRotationOriginY.g + _ScreenRotationOriginY.a)))).g;
+				float blue = tex2D(_Garb, frac(float2(_ScreenXMultiplier.b * _ScreenXMultiplier.a, _ScreenYMultiplier.b * _ScreenYMultiplier.a) * (rotate(grabUV + float2(_BlueXShift, _BlueYShift) / _Garb_TexelSize.zw - float2(_ScreenRotationOriginX.b + _ScreenRotationOriginX.a, _ScreenRotationOriginY.b + _ScreenRotationOriginY.a), _RotationAngle.b + _RotationAngle.a) + float2(_ScreenRotationOriginX.b + _ScreenRotationOriginX.a, _ScreenRotationOriginY.b + _ScreenRotationOriginY.a)))).b;
 				float4 grabCol = float4(red, green, blue, 1);
 				
 				grabCol.rgb = hsv2rgb(saturate(rgb2hsv(grabCol.rgb) * float3(1, _DesaturationAmount, 1)));
