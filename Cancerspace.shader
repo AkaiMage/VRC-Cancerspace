@@ -27,19 +27,11 @@ Shader "RedMage/Cancerspace" {
 		_XShakeSpeed ("X Shake Speed", Float) = 100
 		_YShakeSpeed ("Y Shake Speed", Float) = 100
 		
-		[Header(RGB Splitting)]
-		_RedXShift ("Red X Shift", Float) = 0
-		_RedYShift ("Red Y Shift", Float) = 0
-		_GreenXShift ("Green X Shift", Float) = 0
-		_GreenYShift ("Green Y Shift", Float) = 0
-		_BlueXShift ("Blue X Shift", Float) = 0
-		_BlueYShift ("Blue Y Shift", Float) = 0
-		
 		[Header(Overlay)]
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		_OverlayColor ("Overlay Color", Color) = (1,1,1,1)
 		_BlendAmount ("Blend Amount", Range(0,1)) = 0.5
-		[Toggle(_)] _Multiply ("Multiply", Int) = 0
+		[Enum(Multiply, 0, Add, 3, Subtract, 4, Difference, 5, Divide, 6, Darken, 7, Lighten, 8)] _BlendMode ("Blend Mode", Int) = 0 // TODO: add ", Screen, 1, Overlay, 2" back after writing the custom inspector.
 		
 		[Header(Screen Color Adjustments)]
 		_DesaturationAmount ("Saturation Multiplier", Range(0,1)) = 1
@@ -52,14 +44,16 @@ Shader "RedMage/Cancerspace" {
 		_BurnHigh ("Color Burn High", Float) = 1
 		
 		[Header(Screen Transformation)]
+		_ScreenXOffset ("Screen X Offset (RGB)", Vector) = (0,0,0,0)
+		_ScreenYOffset ("Screen Y Offset (RGB)", Vector) = (0,0,0,0)
 		_ScreenXMultiplier ("Screen X Multiplier (RGB)", Vector) = (1,1,1,1)
 		_ScreenYMultiplier ("Screen Y Multiplier (RGB)", Vector) = (1,1,1,1)
-		_ScreenRotationOriginX ("Screen Rotation Origin X (RGB)", Vector) = (.5,.5,.5,0)
-		_ScreenRotationOriginY ("Screen Rotation Origin Y (RGB)", Vector) = (.5,.5,.5,0)
+		_ScreenRotationOriginX ("Screen Rotation Origin X (RGB)", Vector) = (0,0,0,.5)
+		_ScreenRotationOriginY ("Screen Rotation Origin Y (RGB)", Vector) = (0,0,0,.5)
 		_RotationAngle ("Screen Rotation Angle (RGB)", Vector) = (0,0,0,0)
 		
 		[Header(Misc)]
-		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode("Mirror Reflectance", Int) = 0
+		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode ("Mirror Reflectance", Int) = 0
 	}
 	SubShader {
 		Tags { "Queue" = "Transparent+3" }
@@ -104,7 +98,7 @@ Shader "RedMage/Cancerspace" {
 			
 			float _XWobbleAmount, _YWobbleAmount, _XWobbleTiling, _YWobbleTiling, _XWobbleSpeed, _YWobbleSpeed;
 			
-			int _Multiply;
+			int _BlendMode;
 			float _BlendAmount;
 			
 			float _InversionAmount;
@@ -120,14 +114,12 @@ Shader "RedMage/Cancerspace" {
 			
 			float _MaxFalloff;
 			
-			float _RedXShift, _RedYShift;
-			float _GreenXShift, _GreenYShift;
-			float _BlueXShift, _BlueYShift;
-			
 			float _Puffiness;
 			
 			int _MirrorMode;
 			
+			float4 _ScreenXOffset;
+			float4 _ScreenYOffset;
 			float4 _ScreenXMultiplier;
 			float4 _ScreenYMultiplier;
 			
@@ -151,9 +143,18 @@ Shader "RedMage/Cancerspace" {
 			}
 			
 			float2 rotate(float2 uv, float angle) {
+				// FIXME: rotations aren't correctly displayed for some angles
+				// just going to restrict to only angles that work for now.
+				angle = round(angle / 180) * 180;
+			
+				//#if defined(USING_STEREO_MATRICES)
+				//float2 offset = unity_StereoEyeIndex * float2(.5, 0);
+				//#else
+				float2 offset = float2(0, 0);
+				//#endif
 				float s, c;
 				sincos(angle * UNITY_PI / 180, s, c);
-				return mul(float2x2(c, s, -s, c), uv);
+				return mul(float2x2(c, s, -s, c), uv - offset) + offset;
 			}
 			
 			bool isInMirror() {
@@ -191,35 +192,56 @@ Shader "RedMage/Cancerspace" {
 				grabUV += i.posOrigin.xy / i.posOrigin.w;
 				
 				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
+				
+				// account for a discrepancy between VR and desktop.
 				#if defined(USING_STEREO_MATRICES)
 				wobbleTiling *= float2(.5, 1);
 				#endif
+				
 				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + wobbleTiling);
 				
 				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
 				
 				grabUV += displace;
 				
-				float red = tex2D(_Garb, frac(float2(_ScreenXMultiplier.r * _ScreenXMultiplier.a, _ScreenYMultiplier.r * _ScreenYMultiplier.a) * (rotate(grabUV + float2(_RedXShift, _RedYShift) / _Garb_TexelSize.zw - float2(_ScreenRotationOriginX.r + _ScreenRotationOriginX.a, _ScreenRotationOriginY.r + _ScreenRotationOriginY.a), _RotationAngle.r + _RotationAngle.a) + float2(_ScreenRotationOriginX.r + _ScreenRotationOriginX.a, _ScreenRotationOriginY.r + _ScreenRotationOriginY.a)))).r;
-				float green = tex2D(_Garb, frac(float2(_ScreenXMultiplier.g * _ScreenXMultiplier.a, _ScreenYMultiplier.g * _ScreenYMultiplier.a) * (rotate(grabUV + float2(_GreenXShift, _GreenYShift) / _Garb_TexelSize.zw - float2(_ScreenRotationOriginX.g + _ScreenRotationOriginX.a, _ScreenRotationOriginY.g + _ScreenRotationOriginY.a), _RotationAngle.g + _RotationAngle.a) + float2(_ScreenRotationOriginX.g + _ScreenRotationOriginX.a, _ScreenRotationOriginY.g + _ScreenRotationOriginY.a)))).g;
-				float blue = tex2D(_Garb, frac(float2(_ScreenXMultiplier.b * _ScreenXMultiplier.a, _ScreenYMultiplier.b * _ScreenYMultiplier.a) * (rotate(grabUV + float2(_BlueXShift, _BlueYShift) / _Garb_TexelSize.zw - float2(_ScreenRotationOriginX.b + _ScreenRotationOriginX.a, _ScreenRotationOriginY.b + _ScreenRotationOriginY.a), _RotationAngle.b + _RotationAngle.a) + float2(_ScreenRotationOriginX.b + _ScreenRotationOriginX.a, _ScreenRotationOriginY.b + _ScreenRotationOriginY.a)))).b;
-				float4 grabCol = float4(red, green, blue, 1);
+				float4 grabCol = float4(0, 0, 0, 1);
 				
-				grabCol.rgb = hsv2rgb(saturate(rgb2hsv(grabCol.rgb) * float3(1, _DesaturationAmount, 1)));
-				if (_Burn) grabCol.rgb = smoothstep(_BurnLow, _BurnHigh, grabCol.rgb);
-				
-				float4 inverted = lerp(grabCol, float4(1 - grabCol.rgb, grabCol.a), _InversionAmount);
-				
-				float4 blended = float4(1,1,1,1);
-				
-				if (_Multiply) {
-					blended = lerp(inverted, inverted * color * _Color, _BlendAmount);
-				} else {
-					blended = lerp(inverted, color * _Color, _BlendAmount);
+				UNITY_UNROLL for (int j = 0; j < 3; ++j) {
+					float2 multiplier = float2(_ScreenXMultiplier[j] * _ScreenXMultiplier.a, _ScreenYMultiplier[j] * _ScreenYMultiplier.a);
+					float2 shift = float2(_ScreenXOffset[j] + _ScreenXOffset.a, _ScreenYOffset[j] + _ScreenYOffset.a);
+					float rotationAngle = _RotationAngle[j] + _RotationAngle.a;
+					float2 rotationOrigin = float2(_ScreenRotationOriginX[j] + _ScreenRotationOriginX.a, _ScreenRotationOriginY[j] + _ScreenRotationOriginY.a);
+					
+					grabCol[j] = tex2D(_Garb, frac(multiplier * (rotate(grabUV + shift / _Garb_TexelSize.zw - rotationOrigin, rotationAngle) + rotationOrigin)))[j];
 				}
 				
+				grabCol.rgb = hsv2rgb(saturate(rgb2hsv(grabCol.rgb) * float3(1, _DesaturationAmount, 1)));
 				
-				return blended * _Color;
+				// lol one-liner for exposure and shit, GOML
+				if (_Burn) grabCol.rgb = smoothstep(_BurnLow, _BurnHigh, grabCol.rgb);
+				
+				float3 finalScreenColor = lerp(grabCol, float4(1 - grabCol.rgb, grabCol.a), _InversionAmount);
+				
+				float blendAmount = _BlendAmount * color.a;
+				float3 blendedColor = 0;
+				
+				if (_BlendMode == 0) blendedColor = finalScreenColor * color.rgb;
+				else if (_BlendMode == 1) blendedColor = 1 - (1 - finalScreenColor) * (1 - color.rgb);
+				else if (_BlendMode == 2) {
+					UNITY_UNROLL for (int j = 0; j < 3; ++j) {
+						if (finalScreenColor[j] < .5) blendedColor[j] = 2 * finalScreenColor[j] * color[j];
+						else blendedColor[j] = 1 - 2 * (1 - finalScreenColor[j]) * (1 - color[j]);
+					}
+				} else if (_BlendMode == 3) blendedColor = saturate(finalScreenColor + color.rgb);
+				else if (_BlendMode == 4) blendedColor = saturate(finalScreenColor - color.rgb);
+				else if (_BlendMode == 5) blendedColor = abs(finalScreenColor - color.rgb);
+				else if (_BlendMode == 6) blendedColor = saturate(finalScreenColor / color.rgb);
+				else if (_BlendMode == 7) blendedColor = min(finalScreenColor, color.rgb);
+				else if (_BlendMode == 8) blendedColor = max(finalScreenColor, color.rgb);
+				
+				finalScreenColor = lerp(finalScreenColor, blendedColor, blendAmount);
+				
+				return float4(finalScreenColor, 1) * _Color;
 			}
 			ENDCG
 		}
