@@ -152,7 +152,7 @@ Shader "RedMage/Cancerspace" {
 			
 			float2 rotate(float2 uv, float angle) {
 				float s, c;
-				sincos(angle, s, c);
+				sincos(angle * UNITY_PI / 180, s, c);
 				return mul(float2x2(c, s, -s, c), uv);
 			}
 			
