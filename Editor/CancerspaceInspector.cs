@@ -1,6 +1,8 @@
 ﻿using UnityEditor;
 using UnityEngine;
 using System;
+using System.IO;
+using System.Text.RegularExpressions;
 
 public class CancerspaceInspector : ShaderGUI {
 	public enum BlendMode {
@@ -25,6 +27,9 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string screenColorAdjustmentsTitle = "Screen Color Adjustment";
 		public static string screenTransformTitle = "Screen Transformations";
 		public static string miscSettingsTitle = "Misc";
+		public static string renderQueueExportTitle = "Custom Render Queue Exporter";
+		public static string customRenderQueueSliderText = "Custom Render Queue";
+		public static string exportCustomRenderQueueButtonText = "Export shader with queue and replace in this material";
 		
 		public static readonly string[] blendNames = Enum.GetNames(typeof(BlendMode));
 	}
@@ -89,7 +94,9 @@ public class CancerspaceInspector : ShaderGUI {
 	protected MaterialProperty screenRotationAngle;
 	
 	protected MaterialProperty mirrorReflectionMode;
-	protected MaterialProperty customRenderQueue;
+	
+	protected int customRenderQueue;
+	protected bool initialized;
 	
 	public void FindProperties(MaterialProperty[] props) {
 		categoryExpansionFlags = FindProperty("_InspectorCategoryExpansionFlags", props);
@@ -144,6 +151,11 @@ public class CancerspaceInspector : ShaderGUI {
 	
 	public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties) {
 		FindProperties(properties);
+		
+		if (!initialized) {
+			customRenderQueue = (materialEditor.target as Material).shader.renderQueue;
+			initialized = true;
+		}
 		
 		GUIStyle defaultStyle = new GUIStyle(EditorStyles.foldout);
 		defaultStyle.fontStyle = FontStyle.Bold;
@@ -212,9 +224,58 @@ public class CancerspaceInspector : ShaderGUI {
 				me.ShaderProperty(zTest, zTest.displayName);
 				me.ShaderProperty(mirrorReflectionMode, mirrorReflectionMode.displayName);
 			}),
+			
+			new CSCategory(Styles.renderQueueExportTitle, defaultStyle, me => {
+				Material material = me.target as Material;
+				
+				customRenderQueue = EditorGUILayout.IntSlider(Styles.customRenderQueueSliderText, customRenderQueue, 0, 5000);
+				if (GUILayout.Button(Styles.exportCustomRenderQueueButtonText)) {
+					int relativeQueue = customRenderQueue - ((int) UnityEngine.Rendering.RenderQueue.Transparent);
+					string newQueueString = "Transparent" + (relativeQueue >= 0 ? "+" : "") + relativeQueue;
+					string newShaderPath = "RedMage/Cancerspace Queue " + customRenderQueue;
+					
+					string shaderPath = AssetDatabase.GetAssetPath(material.shader.GetInstanceID());
+					string outputLocation = EditorUtility.SaveFilePanelInProject("Save new shader file", "CancerspaceQueue" + customRenderQueue, "shader", "Please enter a file name to save the custom shader to.");
+					
+					try {
+						using (StreamWriter sw = new StreamWriter(outputLocation)) {
+							using (StreamReader sr = new StreamReader(shaderPath)) {
+								string line;
+								while ((line = sr.ReadLine()) != null) {
+									if (line.Contains("\"Transparent+")) {
+										Regex rx = new Regex(@"Transparent[+-]\d+", RegexOptions.Compiled);
+										MatchCollection matches = rx.Matches(line);
+										foreach (Match match in matches) {
+											line = line.Replace(match.Value, newQueueString);
+										}
+									} else if (line.Contains("RedMage/Cancerspace")) {
+										Regex rx = new Regex("\"[^\"]+\"", RegexOptions.Compiled);
+										MatchCollection matches = rx.Matches(line);
+										foreach (Match match in matches) {
+											line = line.Replace(match.Value, "\"" + newShaderPath + "\"");
+										}
+									}
+									sw.Write(line);
+									sw.WriteLine();
+								}
+							}
+						}
+					} catch (Exception e) {
+						Debug.Log("AAAGAGHH WHAT? HOW? WHY??? WHAT ARE YOU DOING? Shader file could not be read / written.");
+						return;
+					}
+					
+					AssetDatabase.Refresh();
+					
+					material.shader = Shader.Find(newShaderPath);
+					
+					AssetDatabase.SaveAssets();
+				}
+			}),
 		};
 		
 		EditorGUIUtility.labelWidth = 0f;
+		
 		
 		int oldflags = BitConverter.ToInt32(BitConverter.GetBytes(categoryExpansionFlags.floatValue), 0);
 		int newflags = 0;
@@ -228,6 +289,10 @@ public class CancerspaceInspector : ShaderGUI {
 			}
 		}
 		categoryExpansionFlags.floatValue = BitConverter.ToSingle(BitConverter.GetBytes(newflags), 0);
+		
+		
+		GUI.enabled = false;
+		materialEditor.RenderQueueField();
 	}
 	
 	void BlendModePopup(MaterialEditor materialEditor) {
