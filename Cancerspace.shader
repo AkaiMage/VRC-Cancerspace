@@ -12,7 +12,7 @@
 		_Zoom ("Zoom", Float) = 1
 		[PowerSlider(5.0)] _Pixelation ("Pixelation", Range(0, 1)) = 0
 		
-		[PowerSlider(5.0)]_XWobbleAmount ("X Wobble Amount", Range(0,1)) = 0
+		[PowerSlider(2.0)]_XWobbleAmount ("X Wobble Amount", Range(0,1)) = 0
 		[PowerSlider(2.0)]_YWobbleAmount ("Y Wobble Amount", Range(0,1)) = 0
 		[PowerSlider(2.0)]_XWobbleTiling ("X Wobble Tiling", Range(0,3.141592653589793238)) = 0.1
 		[PowerSlider(2.0)]_YWobbleTiling ("Y Wobble Tiling", Range(0,3.141592653589793238)) = 0.1
