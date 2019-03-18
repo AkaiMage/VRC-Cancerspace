@@ -38,6 +38,7 @@
 		_BurnLow ("Color Burn Low", Float) = 0
 		_BurnHigh ("Color Burn High", Float) = 1
 		
+		[Enum(Clamp, 0, Repeat, 1)] _ScreenBoundaryHandling ("Screen Boundary Handling", Float) = 0
 		_ScreenXOffset ("Screen X Offset (RGB)", Vector) = (0,0,0,0)
 		_ScreenYOffset ("Screen Y Offset (RGB)", Vector) = (0,0,0,0)
 		_ScreenXMultiplier ("Screen X Multiplier (RGB)", Vector) = (1,1,1,1)
@@ -121,6 +122,8 @@
 			float4 _ScreenRotationOriginY;
 			
 			float4 _RotationAngle;
+			
+			float _ScreenBoundaryHandling;
 			
 			float3 hsv2rgb(float3 c) {
 				return ((clamp(abs(frac(c.x+float3(0,.666,.333))*6-3)-1,0,1)-1)*c.y+1)*c.z;
@@ -206,7 +209,11 @@
 					float rotationAngle = _RotationAngle[j] + _RotationAngle.a;
 					float2 rotationOrigin = float2(_ScreenRotationOriginX[j] + _ScreenRotationOriginX.a, _ScreenRotationOriginY[j] + _ScreenRotationOriginY.a);
 					
-					grabCol[j] = tex2D(_Garb, frac(multiplier * (rotate(grabUV + shift / _Garb_TexelSize.zw - rotationOrigin, rotationAngle) + rotationOrigin)))[j];
+					float2 uv = multiplier * (rotate(grabUV + shift / _Garb_TexelSize.zw - rotationOrigin, rotationAngle) + rotationOrigin);
+					if (_ScreenBoundaryHandling == 1) {
+						uv = frac(uv);
+					}
+					grabCol[j] = tex2D(_Garb, uv)[j];
 				}
 				
 				float3 hsv = rgb2hsv(grabCol.rgb) * _HSVMultiply + _HSVAdd;

@@ -79,6 +79,7 @@ public class CancerspaceInspector : ShaderGUI {
 	protected MaterialProperty colorBurningLow;
 	protected MaterialProperty colorBurningHigh;
 	
+	protected MaterialProperty screenBoundaryHandling;
 	protected MaterialProperty screenXOffset;
 	protected MaterialProperty screenYOffset;
 	protected MaterialProperty screenXMultiplier;
@@ -129,6 +130,7 @@ public class CancerspaceInspector : ShaderGUI {
 		colorBurningLow = FindProperty("_BurnLow", props);
 		colorBurningHigh = FindProperty("_BurnHigh", props);
 		
+		screenBoundaryHandling = FindProperty("_ScreenBoundaryHandling", props);
 		screenXOffset = FindProperty("_ScreenXOffset", props);
 		screenYOffset = FindProperty("_ScreenYOffset", props);
 		screenXMultiplier = FindProperty("_ScreenXMultiplier", props);
@@ -189,6 +191,7 @@ public class CancerspaceInspector : ShaderGUI {
 			}),
 			
 			new CSCategory(Styles.screenTransformTitle, defaultStyle, me => {
+				me.ShaderProperty(screenBoundaryHandling, screenBoundaryHandling.displayName);
 				me.ShaderProperty(zoomAmount, zoomAmount.displayName);
 				me.ShaderProperty(pixelationAmount, pixelationAmount.displayName);
 				me.ShaderProperty(screenXOffset, screenXOffset.displayName);
