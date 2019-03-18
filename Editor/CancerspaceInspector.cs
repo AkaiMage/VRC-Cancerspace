@@ -138,8 +138,6 @@ public class CancerspaceInspector : ShaderGUI {
 		screenRotationAngle = FindProperty("_RotationAngle", props);
 		
 		mirrorReflectionMode = FindProperty("_MirrorMode", props);
-		
-		customRenderQueue = FindProperty("_CustomRenderQueue", props);
 	}
 	
 	public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties) {
@@ -209,13 +207,6 @@ public class CancerspaceInspector : ShaderGUI {
 			new CSCategory(Styles.miscSettingsTitle, defaultStyle, me => {
 				me.ShaderProperty(cullMode, cullMode.displayName);
 				me.ShaderProperty(zTest, zTest.displayName);
-				// custom render queue
-				EditorGUI.BeginChangeCheck();
-				me.ShaderProperty(customRenderQueue, customRenderQueue.displayName);
-				if (EditorGUI.EndChangeCheck()) {
-					int queue = (int) customRenderQueue.floatValue;
-					(me.target as Material).renderQueue = queue == -1 ? 3003 : queue;
-				}
 				me.ShaderProperty(mirrorReflectionMode, mirrorReflectionMode.displayName);
 			}),
 		};
@@ -234,9 +225,6 @@ public class CancerspaceInspector : ShaderGUI {
 			}
 		}
 		categoryExpansionFlags.floatValue = BitConverter.ToSingle(BitConverter.GetBytes(newflags), 0);
-		
-		GUI.enabled = false;
-		materialEditor.RenderQueueField();
 	}
 	
 	void BlendModePopup(MaterialEditor materialEditor) {

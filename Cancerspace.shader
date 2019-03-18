@@ -47,7 +47,6 @@
 		_RotationAngle ("Screen Rotation Angle (RGB)", Vector) = (0,0,0,0)
 		
 		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode ("Mirror Reflectance", Int) = 0
-		_CustomRenderQueue ("Custom Render Queue", Range(-1, 20000)) = -1
 	}
 	SubShader {
 		Tags { "Queue" = "Transparent+3" }
