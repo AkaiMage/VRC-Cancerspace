@@ -1,49 +1,43 @@
-Shader "RedMage/Cancerspace" {
+﻿Shader "RedMage/Cancerspace" {
 	Properties {
-		[Enum(UnityEngine.Rendering.CullMode)] _CullMode("Cull Mode", Float) = 0
+		_InspectorCategoryExpansionFlags ("DO NOT TOUCH", Int) = 0
+		
+		[Enum(UnityEngine.Rendering.CullMode)] _CullMode ("Cull Mode", Float) = 0
 		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Int) = 4
 		
-		[Header(Target Object Settings)]
 		_Puffiness ("Puffiness", Float) = 0
 		
-		[Header(Falloff Settings)]
 		_MaxFalloff ("Falloff Range", Float) = 30
 		
-		[Header(Zoom Stuff)]
 		_Zoom ("Zoom", Float) = 1
 		[PowerSlider(5.0)] _Pixelation ("Pixelation", Range(0, 1)) = 0
 		
-		[Header(Wobbling)]
-		_XWobbleAmount ("X Wobble Amount", Float) = 0
-		_YWobbleAmount ("Y Wobble Amount", Float) = 0
-		_XWobbleTiling ("X Wobble Tiling", Float) = 0.1
-		_YWobbleTiling ("Y Wobble Tiling", Float) = 0.1
+		[PowerSlider(5.0)]_XWobbleAmount ("X Wobble Amount", Range(0,1)) = 0
+		[PowerSlider(2.0)]_YWobbleAmount ("Y Wobble Amount", Range(0,1)) = 0
+		[PowerSlider(2.0)]_XWobbleTiling ("X Wobble Tiling", Range(0,3.141592653589793238)) = 0.1
+		[PowerSlider(2.0)]_YWobbleTiling ("Y Wobble Tiling", Range(0,3.141592653589793238)) = 0.1
 		_XWobbleSpeed ("X Wobble Speed", Float) = 300
 		_YWobbleSpeed ("Y Wobble Speed", Float) = 300
 		
-		[Header(Screen Shake)]
 		_XShake ("X Shake", Float) = 0
 		_YShake ("Y Shake", Float) = 0
 		_XShakeSpeed ("X Shake Speed", Float) = 100
 		_YShakeSpeed ("Y Shake Speed", Float) = 100
 		
-		[Header(Overlay)]
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		_OverlayColor ("Overlay Color", Color) = (1,1,1,1)
 		_BlendAmount ("Blend Amount", Range(0,1)) = 0.5
-		[Enum(Multiply, 0, Add, 3, Subtract, 4, Difference, 5, Divide, 6, Darken, 7, Lighten, 8)] _BlendMode ("Blend Mode", Int) = 0 // TODO: add ", Screen, 1, Overlay, 2" back after writing the custom inspector.
+		_BlendMode ("Blend Mode", Int) = 0
 		
-		[Header(Screen Color Adjustments)]
-		_DesaturationAmount ("Saturation Multiplier", Range(0,1)) = 1
+		_HSVAdd ("HSV Add", Vector) = (0,0,0,0)
+		_HSVMultiply ("HSV Multiply", Vector) = (1,1,1,1)
 		_InversionAmount ("Inversion Amount", Range(0,1)) = 0
 		_Color ("Screen Color", Color) = (1,1,1,1)
 		
-		[Header(Color Burning)]
-		[Toggle(_)] _Burn ("Enabled", Int) = 0
+		[Toggle(_)] _Burn ("Color Burning", Int) = 0
 		_BurnLow ("Color Burn Low", Float) = 0
 		_BurnHigh ("Color Burn High", Float) = 1
 		
-		[Header(Screen Transformation)]
 		_ScreenXOffset ("Screen X Offset (RGB)", Vector) = (0,0,0,0)
 		_ScreenYOffset ("Screen Y Offset (RGB)", Vector) = (0,0,0,0)
 		_ScreenXMultiplier ("Screen X Multiplier (RGB)", Vector) = (1,1,1,1)
@@ -52,8 +46,8 @@ Shader "RedMage/Cancerspace" {
 		_ScreenRotationOriginY ("Screen Rotation Origin Y (RGB)", Vector) = (0,0,0,.5)
 		_RotationAngle ("Screen Rotation Angle (RGB)", Vector) = (0,0,0,0)
 		
-		[Header(Misc)]
 		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode ("Mirror Reflectance", Int) = 0
+		_CustomRenderQueue ("Custom Render Queue", Range(-1, 20000)) = -1
 	}
 	SubShader {
 		Tags { "Queue" = "Transparent+3" }
@@ -105,7 +99,8 @@ Shader "RedMage/Cancerspace" {
 			
 			float _Pixelation;
 			
-			float _DesaturationAmount;
+			float3 _HSVAdd;
+			float3 _HSVMultiply;
 			
 			float _Zoom;
 			
@@ -215,7 +210,10 @@ Shader "RedMage/Cancerspace" {
 					grabCol[j] = tex2D(_Garb, frac(multiplier * (rotate(grabUV + shift / _Garb_TexelSize.zw - rotationOrigin, rotationAngle) + rotationOrigin)))[j];
 				}
 				
-				grabCol.rgb = hsv2rgb(saturate(rgb2hsv(grabCol.rgb) * float3(1, _DesaturationAmount, 1)));
+				float3 hsv = rgb2hsv(grabCol.rgb) * _HSVMultiply + _HSVAdd;
+				hsv.r = frac(hsv.r);
+				hsv.gb = saturate(hsv.gb);
+				grabCol.rgb = hsv2rgb(hsv);
 				
 				// lol one-liner for exposure and shit, GOML
 				if (_Burn) grabCol.rgb = smoothstep(_BurnLow, _BurnHigh, grabCol.rgb);
@@ -246,4 +244,5 @@ Shader "RedMage/Cancerspace" {
 			ENDCG
 		}
 	}
+	CustomEditor "CancerspaceInspector"
 }
