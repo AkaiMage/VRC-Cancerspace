@@ -25,14 +25,14 @@
 		_YShakeSpeed ("Y Shake Speed", Float) = 100
 		
 		_MainTex ("Image Overlay", 2D) = "white" {}
-		_OverlayColor ("Overlay Color", Color) = (1,1,1,1)
+		[HDR] _OverlayColor ("Overlay Color", Color) = (1,1,1,1)
 		_BlendAmount ("Blend Amount", Range(0,1)) = 0.5
 		_BlendMode ("Blend Mode", Int) = 0
 		
 		_HSVAdd ("HSV Add", Vector) = (0,0,0,0)
 		_HSVMultiply ("HSV Multiply", Vector) = (1,1,1,1)
 		_InversionAmount ("Inversion Amount", Range(0,1)) = 0
-		_Color ("Screen Color", Color) = (1,1,1,1)
+		[HDR] _Color ("Screen Color", Color) = (1,1,1,1)
 		
 		[Toggle(_)] _Burn ("Color Burning", Int) = 0
 		_BurnLow ("Color Burn Low", Float) = 0
