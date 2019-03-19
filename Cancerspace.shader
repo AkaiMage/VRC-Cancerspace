@@ -84,6 +84,19 @@
 			#pragma vertex vert
 			#pragma fragment frag
 			
+			#define BLENDMODE_MULTIPLY 0
+			#define BLENDMODE_SCREEN 1
+			#define BLENDMODE_OVERLAY 2
+			#define BLENDMODE_ADD 3
+			#define BLENDMODE_SUBTRACT 4
+			#define BLENDMODE_DIFFERENCE 5
+			#define BLENDMODE_DIVIDE 6
+			#define BLENDMODE_DARKEN 7
+			#define BLENDMODE_LIGHTEN 8
+			
+			#define BOUNDARYMODE_CLAMP 0
+			#define BOUNDARYMODE_REPEAT 1
+			
 			#include "UnityCG.cginc"
 
 			struct appdata {
@@ -176,17 +189,24 @@
 				return mul(float2x2(c, s, -s, c), uv - offset) + offset;
 			}
 			
+			float2 computeScreenSpaceOverlayUV(float3 worldSpacePos) {
+				float3 viewSpace = mul(UNITY_MATRIX_V, worldSpacePos - _WorldSpaceCameraPos);
+				float2 adjusted = viewSpace.xy / viewSpace.z;
+				return 1.0 - adjusted * float2(_ScreenParams.z / _ScreenParams.w, 1);
+			}
+			
 			bool isInMirror() {
-				return unity_CameraProjection[2][0] != 0.f || unity_CameraProjection[2][1] != 0.f;
+				return unity_CameraProjection[2][0] != 0 || unity_CameraProjection[2][1] != 0;
 			}
 			
 			v2f vert (appdata v) {
 				v2f o;
 				v.vertex.xyz += _Puffiness * v.normal;
 				o.pos = UnityObjectToClipPos(v.vertex);
-				o.posWorld = mul(unity_ObjectToWorld, v.vertex);
+				o.posWorld = mul(unity_ObjectToWorld, v.vertex).xyz;
 				o.projPos = ComputeScreenPos(o.pos);
 				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
+				o.posOrigin.xy /= o.posOrigin.w;
 				return o;
 			}
 			
@@ -194,27 +214,23 @@
 				if (_MirrorMode == 1 && isInMirror() || _MirrorMode == 2 && !isInMirror()) discard;
 			
 				float3 originPoint = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
-				
 				if (dot(originPoint, originPoint) > _MaxFalloff * _MaxFalloff) discard;
 				
-				float3 viewSpace = mul(UNITY_MATRIX_V, i.posWorld.xyz - _WorldSpaceCameraPos);
-				float2 adjusted = viewSpace.xy / viewSpace.z;
-				float2 uv = 1.0 - adjusted * float2(_ScreenParams.z / _ScreenParams.w, 1);
-				float4 color = tex2D(_MainTex, TRANSFORM_TEX(uv, _MainTex)) * _OverlayColor;
+				float4 color = tex2D(_MainTex, TRANSFORM_TEX(computeScreenSpaceOverlayUV(i.posWorld), _MainTex)) * _OverlayColor;
 				
 				float2 displace = float2(_XShake, _YShake) * _Garb_TexelSize.xy * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed));
 				
 				float2 grabUV = i.projPos.xy / i.projPos.w;
 				
-				grabUV -= i.posOrigin.xy / i.posOrigin.w;
+				grabUV -= i.posOrigin.xy;
 				grabUV *= _Zoom;
-				grabUV += i.posOrigin.xy / i.posOrigin.w;
+				grabUV += i.posOrigin.xy;
 				
 				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
 				
 				// account for a discrepancy between VR and desktop.
 				#if defined(USING_STEREO_MATRICES)
-				wobbleTiling *= float2(.5, 1);
+				wobbleTiling.x *= .5;
 				#endif
 				
 				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + wobbleTiling);
@@ -231,10 +247,21 @@
 					float rotationAngle = _RotationAngle[j] + _RotationAngle.a;
 					float2 rotationOrigin = float2(_ScreenRotationOriginX[j] + _ScreenRotationOriginX.a, _ScreenRotationOriginY[j] + _ScreenRotationOriginY.a);
 					
-					float2 uv = multiplier * (rotate(grabUV + shift / _Garb_TexelSize.zw - rotationOrigin, rotationAngle) + rotationOrigin);
-					if (_ScreenBoundaryHandling == 1) {
-						uv = frac(uv);
+					float2 uv = multiplier * (rotate(grabUV + shift * _Garb_TexelSize.xy - rotationOrigin, rotationAngle) + rotationOrigin);
+					
+					switch (_ScreenBoundaryHandling) {
+						case BOUNDARYMODE_CLAMP:
+							/*
+							 * technically not necessary since this should happen automatically,
+							 * but I feel better about it by explicitly making sure it happens.
+							 */
+							uv = saturate(uv);
+							break;
+						case BOUNDARYMODE_REPEAT:
+							uv = frac(uv);
+							break;
 					}
+					
 					grabCol[j] = tex2D(_Garb, uv)[j];
 				}
 				
@@ -251,19 +278,38 @@
 				float blendAmount = _BlendAmount * color.a;
 				float3 blendedColor = 0;
 				
-				if (_BlendMode == 0) blendedColor = finalScreenColor * color.rgb;
-				else if (_BlendMode == 1) blendedColor = 1 - (1 - finalScreenColor) * (1 - color.rgb);
-				else if (_BlendMode == 2) {
-					UNITY_UNROLL for (int j = 0; j < 3; ++j) {
-						if (finalScreenColor[j] < .5) blendedColor[j] = 2 * finalScreenColor[j] * color[j];
-						else blendedColor[j] = 1 - 2 * (1 - finalScreenColor[j]) * (1 - color[j]);
-					}
-				} else if (_BlendMode == 3) blendedColor = saturate(finalScreenColor + color.rgb);
-				else if (_BlendMode == 4) blendedColor = saturate(finalScreenColor - color.rgb);
-				else if (_BlendMode == 5) blendedColor = abs(finalScreenColor - color.rgb);
-				else if (_BlendMode == 6) blendedColor = saturate(finalScreenColor / color.rgb);
-				else if (_BlendMode == 7) blendedColor = min(finalScreenColor, color.rgb);
-				else if (_BlendMode == 8) blendedColor = max(finalScreenColor, color.rgb);
+				switch (_BlendMode) {
+					case BLENDMODE_MULTIPLY:
+						blendedColor = finalScreenColor * color.rgb;
+						break;
+					case BLENDMODE_SCREEN:
+						blendedColor = 1 - (1 - finalScreenColor) * (1 - color.rgb);
+						break;
+					case BLENDMODE_OVERLAY:
+						UNITY_UNROLL for (int j = 0; j < 3; ++j) {
+							if (finalScreenColor[j] < .5) blendedColor[j] = 2 * finalScreenColor[j] * color[j];
+							else blendedColor[j] = 1 - 2 * (1 - finalScreenColor[j]) * (1 - color[j]);
+						}
+						break;
+					case BLENDMODE_ADD:
+						blendedColor = saturate(finalScreenColor + color.rgb);
+						break;
+					case BLENDMODE_SUBTRACT:
+						blendedColor = saturate(finalScreenColor - color.rgb);
+						break;
+					case BLENDMODE_DIFFERENCE:
+						blendedColor = abs(finalScreenColor - color.rgb);
+						break;
+					case BLENDMODE_DIVIDE:
+						blendedColor = saturate(finalScreenColor / color.rgb);
+						break;
+					case BLENDMODE_DARKEN:
+						blendedColor = min(finalScreenColor, color.rgb);
+						break;
+					case BLENDMODE_LIGHTEN:
+						blendedColor = max(finalScreenColor, color.rgb);
+						break;
+				}
 				
 				finalScreenColor = lerp(finalScreenColor, blendedColor, blendAmount);
 				
