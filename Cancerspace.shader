@@ -31,8 +31,8 @@
 		
 		_XShake ("X Shake", Float) = 0
 		_YShake ("Y Shake", Float) = 0
-		_XShakeSpeed ("X Shake Speed", Float) = 100
-		_YShakeSpeed ("Y Shake Speed", Float) = 100
+		_XShakeSpeed ("X Shake Speed", Float) = 200
+		_YShakeSpeed ("Y Shake Speed", Float) = 300
 		
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		[HDR] _OverlayColor ("Overlay Color", Color) = (1,1,1,1)

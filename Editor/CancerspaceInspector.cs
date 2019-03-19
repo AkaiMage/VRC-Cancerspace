@@ -232,9 +232,9 @@ public class CancerspaceInspector : ShaderGUI {
 				me.ShaderProperty(screenYOffset, screenYOffset.displayName);
 				me.ShaderProperty(screenXMultiplier, screenXMultiplier.displayName);
 				me.ShaderProperty(screenYMultiplier, screenYMultiplier.displayName);
-				me.ShaderProperty(screenXRotationOrigin, screenXRotationOrigin.displayName);
-				me.ShaderProperty(screenYRotationOrigin, screenYRotationOrigin.displayName);
-				me.ShaderProperty(screenRotationAngle, screenRotationAngle.displayName);
+				//me.ShaderProperty(screenXRotationOrigin, screenXRotationOrigin.displayName);
+				//me.ShaderProperty(screenYRotationOrigin, screenYRotationOrigin.displayName);
+				//me.ShaderProperty(screenRotationAngle, screenRotationAngle.displayName);
 			}),
 			
 			new CSCategory(Styles.targetObjectSettingsTitle, defaultStyle, me => {
