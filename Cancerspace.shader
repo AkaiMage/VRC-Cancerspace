@@ -4,6 +4,16 @@
 		
 		[Enum(UnityEngine.Rendering.CullMode)] _CullMode ("Cull Mode", Float) = 0
 		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Int) = 4
+		[Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Int) = 1
+		_ColorMask ("Color Mask", Int) = 15
+		
+		_StencilRef ("Ref", Int) = 0
+		[Enum(UnityEngine.Rendering.CompareFunction)] _StencilComp ("Compare Function", Int) = 8
+		[Enum(UnityEngine.Rendering.StencilOp)] _StencilPassOp ("Pass Operation", Int) = 0
+		[Enum(UnityEngine.Rendering.StencilOp)] _StencilFailOp ("Fail Operation", Int) = 0
+		[Enum(UnityEngine.Rendering.StencilOp)] _StencilZFailOp ("ZFail Operation", Int) = 0
+		_StencilReadMask ("Read Mask", Int) = 255
+		_StencilWriteMask ("Write Mask", Int) = 255
 		
 		_Puffiness ("Puffiness", Float) = 0
 		
@@ -52,8 +62,20 @@
 	SubShader {
 		Tags { "Queue" = "Transparent+3" }
 		
+		Stencil {
+			Ref [_StencilRef]
+			ReadMask [_StencilReadMask]
+			WriteMask [_StencilWriteMask]
+			Comp [_StencilComp]
+			Pass [_StencilPassOp]
+			Fail [_StencilFailOp]
+			ZFail [_StencilZFailOp]
+		}
+		
 		Cull [_CullMode]
 		ZTest [_ZTest]
+		ZWrite [_ZWrite]
+		ColorMask [_ColorMask]
 		
 		GrabPass { "_Garb" }
 

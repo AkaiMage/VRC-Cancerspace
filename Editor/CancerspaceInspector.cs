@@ -1,5 +1,6 @@
 ﻿using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -26,6 +27,7 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string overlaySettingsTitle = "Overlay";
 		public static string screenColorAdjustmentsTitle = "Screen Color Adjustment";
 		public static string screenTransformTitle = "Screen Transformations";
+		public static string stencilTitle = "Stencil Testing";
 		public static string miscSettingsTitle = "Misc";
 		public static string renderQueueExportTitle = "Custom Render Queue Exporter";
 		public static string customRenderQueueSliderText = "Custom Render Queue";
@@ -50,6 +52,16 @@ public class CancerspaceInspector : ShaderGUI {
 	
 	protected MaterialProperty cullMode;
 	protected MaterialProperty zTest;
+	protected MaterialProperty zWrite;
+	protected MaterialProperty colorMask;
+	
+	protected MaterialProperty stencilRef;
+	protected MaterialProperty stencilComp;
+	protected MaterialProperty stencilPass;
+	protected MaterialProperty stencilFail;
+	protected MaterialProperty stencilZFail;
+	protected MaterialProperty stencilReadMask;
+	protected MaterialProperty stencilWriteMask;
 	
 	protected MaterialProperty puffiness;
 	
@@ -103,6 +115,16 @@ public class CancerspaceInspector : ShaderGUI {
 		
 		cullMode = FindProperty("_CullMode", props);
 		zTest = FindProperty("_ZTest", props);
+		zWrite = FindProperty("_ZWrite", props);
+		colorMask = FindProperty("_ColorMask", props);
+		
+		stencilRef = FindProperty("_StencilRef", props);
+		stencilComp = FindProperty("_StencilComp", props);
+		stencilPass = FindProperty("_StencilPassOp", props);
+		stencilFail = FindProperty("_StencilFailOp", props);
+		stencilZFail = FindProperty("_StencilZFailOp", props);
+		stencilReadMask = FindProperty("_StencilReadMask", props);
+		stencilWriteMask = FindProperty("_StencilWriteMask", props);
 		
 		puffiness = FindProperty("_Puffiness", props);
 		
@@ -219,9 +241,21 @@ public class CancerspaceInspector : ShaderGUI {
 				me.ShaderProperty(puffiness, puffiness.displayName);
 			}),
 			
+			new CSCategory(Styles.stencilTitle, defaultStyle, me => {
+				DisplayIntSlider(me, stencilRef, 0, 255);
+				me.ShaderProperty(stencilComp, stencilComp.displayName);
+				me.ShaderProperty(stencilPass, stencilPass.displayName);
+				me.ShaderProperty(stencilFail, stencilFail.displayName);
+				me.ShaderProperty(stencilZFail, stencilZFail.displayName);
+				DisplayIntSlider(me, stencilReadMask, 0, 255);
+				DisplayIntSlider(me, stencilWriteMask, 0, 255);
+			}),
+			
 			new CSCategory(Styles.miscSettingsTitle, defaultStyle, me => {
 				me.ShaderProperty(cullMode, cullMode.displayName);
 				me.ShaderProperty(zTest, zTest.displayName);
+				me.ShaderProperty(zWrite, zWrite.displayName);
+				ShowColorMaskFlags(me, colorMask);
 				me.ShaderProperty(mirrorReflectionMode, mirrorReflectionMode.displayName);
 			}),
 			
@@ -315,6 +349,44 @@ public class CancerspaceInspector : ShaderGUI {
 		if (EditorGUI.EndChangeCheck()) {
 			materialEditor.RegisterPropertyChangeUndo(property.displayName);
 			property.vectorValue = new Vector4(v.x, v.y, v.z, 0);
+		}
+		EditorGUI.showMixedValue = false;
+	}
+	
+	void DisplayIntField(MaterialEditor materialEditor, MaterialProperty property) {
+		EditorGUI.showMixedValue = property.hasMixedValue;
+		int v = (int) property.floatValue;
+		EditorGUI.BeginChangeCheck();
+		v = EditorGUILayout.IntField(property.displayName, v);
+		if (EditorGUI.EndChangeCheck()) {
+			materialEditor.RegisterPropertyChangeUndo(property.displayName);
+			property.floatValue = (float) v;
+		}
+		EditorGUI.showMixedValue = false;
+	}
+	
+	void DisplayIntSlider(MaterialEditor materialEditor, MaterialProperty property, int min, int max) {
+		EditorGUI.showMixedValue = property.hasMixedValue;
+		int v = (int) property.floatValue;
+		EditorGUI.BeginChangeCheck();
+		v = EditorGUILayout.IntSlider(property.displayName, v, min, max);
+		if (EditorGUI.EndChangeCheck()) {
+			materialEditor.RegisterPropertyChangeUndo(property.displayName);
+			property.floatValue = (float) v;
+		}
+		EditorGUI.showMixedValue = false;
+	}
+	
+	void ShowColorMaskFlags(MaterialEditor materialEditor, MaterialProperty property) {
+		EditorGUI.showMixedValue = property.hasMixedValue;
+		ColorWriteMask v = (ColorWriteMask) ((int) property.floatValue);
+		EditorGUI.BeginChangeCheck();
+		v = (ColorWriteMask) EditorGUILayout.EnumFlagsField(property.displayName, v);
+		if (EditorGUI.EndChangeCheck()) {
+			materialEditor.RegisterPropertyChangeUndo(property.displayName);
+			int x = (int) v;
+			if (x == -1) x = 15;
+			property.floatValue = (float) x;
 		}
 		EditorGUI.showMixedValue = false;
 	}
