@@ -296,6 +296,7 @@ public class CancerspaceInspector : ShaderGUI {
 						}
 					} catch (Exception e) {
 						Debug.Log("AAAGAGHH WHAT? HOW? WHY??? WHAT ARE YOU DOING? Shader file could not be read / written.");
+						Debug.Log(e.Message);
 						return;
 					}
 					
