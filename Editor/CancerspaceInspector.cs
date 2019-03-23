@@ -15,18 +15,26 @@ public class CancerspaceInspector : ShaderGUI {
 		Difference,
 		Divide,
 		Darken,
-		Lighten
+		Lighten,
+		Lerp
 	}
 	
 	public static class Styles {
+		public static string sliderModeCheckboxText = "Sliders for dummies";
 		public static GUIContent overlayImageText = new GUIContent("Image Overlay", "The overlay image and color.");
 		public static string targetObjectSettingsTitle = "Target Object Settings";
 		public static string falloffSettingsTitle = "Falloff Settings";
-		public static string wobbleSettingsTitle = "Wobbling";
+		public static string wobbleSettingsTitle = "Wave Distortion";
 		public static string screenShakeSettingsTitle = "Screen Shake";
 		public static string overlaySettingsTitle = "Overlay";
 		public static string screenColorAdjustmentsTitle = "Screen Color Adjustment";
+		public static string hsvAddText = "HSV Add";
+		public static string hsvMultiplyText = "HSV Multiply";
 		public static string screenTransformTitle = "Screen Transformations";
+		public static string screenXOffsetText = "Screen X Offset (RGB)";
+		public static string screenYOffsetText = "Screen Y Offset (RGB)";
+		public static string screenXMultiplierText = "Screen X Multiplier (RGB)";
+		public static string screenYMultiplierText = "Screen Y Multiplier (RGB)";
 		public static string stencilTitle = "Stencil Testing";
 		public static string miscSettingsTitle = "Misc";
 		public static string renderQueueExportTitle = "Custom Render Queue Exporter";
@@ -48,7 +56,8 @@ public class CancerspaceInspector : ShaderGUI {
 		}
 	}
 	
-	protected MaterialProperty categoryExpansionFlags;
+	protected static bool sliderMode = true;
+	protected static int categoryExpansionFlags;
 	
 	protected MaterialProperty cullMode;
 	protected MaterialProperty zTest;
@@ -86,9 +95,10 @@ public class CancerspaceInspector : ShaderGUI {
 	protected MaterialProperty overlayColor;
 	protected MaterialProperty overlayBlendAmount;
 	protected MaterialProperty overlayBlendMode;
+
+	protected MaterialProperty screenHueAdd, screenSaturationAdd, screenValueAdd;
+	protected MaterialProperty screenHueMultiply, screenSaturationMultiply, screenValueMultiply;
 	
-	protected MaterialProperty screenHSVAdd;
-	protected MaterialProperty screenHSVMultiply;
 	protected MaterialProperty screenInversion;
 	protected MaterialProperty screenColor;
 	
@@ -97,10 +107,10 @@ public class CancerspaceInspector : ShaderGUI {
 	protected MaterialProperty colorBurningHigh;
 	
 	protected MaterialProperty screenBoundaryHandling;
-	protected MaterialProperty screenXOffset;
-	protected MaterialProperty screenYOffset;
-	protected MaterialProperty screenXMultiplier;
-	protected MaterialProperty screenYMultiplier;
+	protected MaterialProperty screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA;
+	protected MaterialProperty screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA;
+	protected MaterialProperty screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA;
+	protected MaterialProperty screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA;
 	protected MaterialProperty screenXRotationOrigin;
 	protected MaterialProperty screenYRotationOrigin;
 	protected MaterialProperty screenRotationAngle;
@@ -111,8 +121,6 @@ public class CancerspaceInspector : ShaderGUI {
 	protected bool initialized;
 	
 	public void FindProperties(MaterialProperty[] props) {
-		categoryExpansionFlags = FindProperty("_InspectorCategoryExpansionFlags", props);
-		
 		cullMode = FindProperty("_CullMode", props);
 		zTest = FindProperty("_ZTest", props);
 		zWrite = FindProperty("_ZWrite", props);
@@ -150,8 +158,12 @@ public class CancerspaceInspector : ShaderGUI {
 		overlayBlendAmount = FindProperty("_BlendAmount", props);
 		overlayBlendMode = FindProperty("_BlendMode", props);
 		
-		screenHSVAdd = FindProperty("_HSVAdd", props);
-		screenHSVMultiply = FindProperty("_HSVMultiply", props);
+		screenHueAdd = FindProperty("_HueAdd", props);
+		screenSaturationAdd = FindProperty("_SaturationAdd", props);
+		screenValueAdd = FindProperty("_ValueAdd", props);
+		screenHueMultiply = FindProperty("_HueMultiply", props);
+		screenSaturationMultiply = FindProperty("_SaturationMultiply", props);
+		screenValueMultiply = FindProperty("_ValueMultiply", props);
 		screenInversion = FindProperty("_InversionAmount", props);
 		screenColor = FindProperty("_Color", props);
 		
@@ -160,10 +172,22 @@ public class CancerspaceInspector : ShaderGUI {
 		colorBurningHigh = FindProperty("_BurnHigh", props);
 		
 		screenBoundaryHandling = FindProperty("_ScreenBoundaryHandling", props);
-		screenXOffset = FindProperty("_ScreenXOffset", props);
-		screenYOffset = FindProperty("_ScreenYOffset", props);
-		screenXMultiplier = FindProperty("_ScreenXMultiplier", props);
-		screenYMultiplier = FindProperty("_ScreenYMultiplier", props);
+		screenXOffsetR = FindProperty("_ScreenXOffsetR", props);
+		screenXOffsetG = FindProperty("_ScreenXOffsetG", props);
+		screenXOffsetB = FindProperty("_ScreenXOffsetB", props);
+		screenXOffsetA = FindProperty("_ScreenXOffsetA", props);
+		screenYOffsetR = FindProperty("_ScreenYOffsetR", props);
+		screenYOffsetG = FindProperty("_ScreenYOffsetG", props);
+		screenYOffsetB = FindProperty("_ScreenYOffsetB", props);
+		screenYOffsetA = FindProperty("_ScreenYOffsetA", props);
+		screenXMultiplierR = FindProperty("_ScreenXMultiplierR", props);
+		screenXMultiplierG = FindProperty("_ScreenXMultiplierG", props);
+		screenXMultiplierB = FindProperty("_ScreenXMultiplierB", props);
+		screenXMultiplierA = FindProperty("_ScreenXMultiplierA", props);
+		screenYMultiplierR = FindProperty("_ScreenYMultiplierR", props);
+		screenYMultiplierG = FindProperty("_ScreenYMultiplierG", props);
+		screenYMultiplierB = FindProperty("_ScreenYMultiplierB", props);
+		screenYMultiplierA = FindProperty("_ScreenYMultiplierA", props);
 		screenXRotationOrigin = FindProperty("_ScreenRotationOriginX", props);
 		screenYRotationOrigin = FindProperty("_ScreenRotationOriginY", props);
 		screenRotationAngle = FindProperty("_RotationAngle", props);
@@ -194,15 +218,27 @@ public class CancerspaceInspector : ShaderGUI {
 				me.ShaderProperty(wobbleYAmount, wobbleYAmount.displayName);
 				me.ShaderProperty(wobbleXTiling, wobbleXTiling.displayName);
 				me.ShaderProperty(wobbleYTiling, wobbleYTiling.displayName);
-				me.ShaderProperty(wobbleXSpeed, wobbleXSpeed.displayName);
-				me.ShaderProperty(wobbleYSpeed, wobbleYSpeed.displayName);
+				if (sliderMode) {
+					me.ShaderProperty(wobbleXSpeed, wobbleXSpeed.displayName);
+					me.ShaderProperty(wobbleYSpeed, wobbleYSpeed.displayName);
+				} else {
+					me.FloatProperty(wobbleXSpeed, wobbleXSpeed.displayName);
+					me.FloatProperty(wobbleYSpeed, wobbleYSpeed.displayName);
+				}
 			}),
 			
 			new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {
-				me.ShaderProperty(shakeXAmount, shakeXAmount.displayName);
-				me.ShaderProperty(shakeYAmount, shakeYAmount.displayName);
-				me.ShaderProperty(shakeXSpeed, shakeXSpeed.displayName);
-				me.ShaderProperty(shakeYSpeed, shakeYSpeed.displayName);
+				if (sliderMode) {
+					me.ShaderProperty(shakeXAmount, shakeXAmount.displayName);
+					me.ShaderProperty(shakeYAmount, shakeYAmount.displayName);
+					me.ShaderProperty(shakeXSpeed, shakeXSpeed.displayName);
+					me.ShaderProperty(shakeYSpeed, shakeYSpeed.displayName);
+				} else {
+					me.FloatProperty(shakeXAmount, shakeXAmount.displayName);
+					me.FloatProperty(shakeYAmount, shakeYAmount.displayName);
+					me.FloatProperty(shakeXSpeed, shakeXSpeed.displayName);
+					me.FloatProperty(shakeYSpeed, shakeYSpeed.displayName);
+				}
 			}),
 			
 			new CSCategory(Styles.overlaySettingsTitle, defaultStyle, me => {
@@ -213,8 +249,17 @@ public class CancerspaceInspector : ShaderGUI {
 			}),
 			
 			new CSCategory(Styles.screenColorAdjustmentsTitle, defaultStyle, me => {
-				DisplayVec3Field(me, screenHSVAdd);
-				DisplayVec3Field(me, screenHSVMultiply);
+				if (sliderMode) {
+					me.ShaderProperty(screenHueAdd, screenHueAdd.displayName);
+					me.ShaderProperty(screenSaturationAdd, screenSaturationAdd.displayName);
+					me.ShaderProperty(screenValueAdd, screenValueAdd.displayName);
+					me.ShaderProperty(screenHueMultiply, screenHueMultiply.displayName);
+					me.ShaderProperty(screenSaturationMultiply, screenSaturationMultiply.displayName);
+					me.ShaderProperty(screenValueMultiply, screenValueMultiply.displayName);
+				} else {
+					DisplayVec3Field(me, Styles.hsvAddText, screenHueAdd, screenSaturationAdd, screenValueAdd);
+					DisplayVec3Field(me, Styles.hsvMultiplyText, screenHueMultiply, screenSaturationMultiply, screenValueMultiply);
+				}
 				me.ShaderProperty(screenInversion, screenInversion.displayName);
 				me.ShaderProperty(screenColor, screenColor.displayName);
 				me.ShaderProperty(colorBurningToggle, colorBurningToggle.displayName);
@@ -228,10 +273,29 @@ public class CancerspaceInspector : ShaderGUI {
 				me.ShaderProperty(screenBoundaryHandling, screenBoundaryHandling.displayName);
 				me.ShaderProperty(zoomAmount, zoomAmount.displayName);
 				me.ShaderProperty(pixelationAmount, pixelationAmount.displayName);
-				me.ShaderProperty(screenXOffset, screenXOffset.displayName);
-				me.ShaderProperty(screenYOffset, screenYOffset.displayName);
-				me.ShaderProperty(screenXMultiplier, screenXMultiplier.displayName);
-				me.ShaderProperty(screenYMultiplier, screenYMultiplier.displayName);
+				if (sliderMode) {
+					me.ShaderProperty(screenXOffsetA, screenXOffsetA.displayName);
+					me.ShaderProperty(screenYOffsetA, screenYOffsetA.displayName);
+					me.ShaderProperty(screenXOffsetR, screenXOffsetR.displayName);
+					me.ShaderProperty(screenYOffsetR, screenYOffsetR.displayName);
+					me.ShaderProperty(screenXOffsetG, screenXOffsetG.displayName);
+					me.ShaderProperty(screenYOffsetG, screenYOffsetG.displayName);
+					me.ShaderProperty(screenXOffsetB, screenXOffsetB.displayName);
+					me.ShaderProperty(screenYOffsetB, screenYOffsetB.displayName);
+					me.ShaderProperty(screenXMultiplierA, screenXMultiplierA.displayName);
+					me.ShaderProperty(screenYMultiplierA, screenYMultiplierA.displayName);
+					me.ShaderProperty(screenXMultiplierR, screenXMultiplierR.displayName);
+					me.ShaderProperty(screenYMultiplierR, screenYMultiplierR.displayName);
+					me.ShaderProperty(screenXMultiplierG, screenXMultiplierG.displayName);
+					me.ShaderProperty(screenYMultiplierG, screenYMultiplierG.displayName);
+					me.ShaderProperty(screenXMultiplierB, screenXMultiplierB.displayName);
+					me.ShaderProperty(screenYMultiplierB, screenYMultiplierB.displayName);
+				} else {
+					DisplayVec4Field(me, Styles.screenXOffsetText, screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA);
+					DisplayVec4Field(me, Styles.screenYOffsetText, screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA);
+					DisplayVec4Field(me, Styles.screenXMultiplierText, screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA);
+					DisplayVec4Field(me, Styles.screenYMultiplierText, screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA);
+				}
 				//me.ShaderProperty(screenXRotationOrigin, screenXRotationOrigin.displayName);
 				//me.ShaderProperty(screenYRotationOrigin, screenYRotationOrigin.displayName);
 				//me.ShaderProperty(screenRotationAngle, screenRotationAngle.displayName);
@@ -311,8 +375,10 @@ public class CancerspaceInspector : ShaderGUI {
 		
 		EditorGUIUtility.labelWidth = 0f;
 		
+		sliderMode = EditorGUILayout.ToggleLeft(Styles.sliderModeCheckboxText, sliderMode);
 		
-		int oldflags = BitConverter.ToInt32(BitConverter.GetBytes(categoryExpansionFlags.floatValue), 0);
+		
+		int oldflags = categoryExpansionFlags;
 		int newflags = 0;
 		for (int i = 0; i < categories.Length; ++i) {
 			bool expanded = EditorGUILayout.Foldout((oldflags & (1 << i)) != 0, categories[i].name, true, categories[i].style);
@@ -323,7 +389,7 @@ public class CancerspaceInspector : ShaderGUI {
 				EditorGUI.indentLevel--;
 			}
 		}
-		categoryExpansionFlags.floatValue = BitConverter.ToSingle(BitConverter.GetBytes(newflags), 0);
+		categoryExpansionFlags = newflags;
 		
 		
 		GUI.enabled = false;
@@ -342,16 +408,61 @@ public class CancerspaceInspector : ShaderGUI {
 		EditorGUI.showMixedValue = false;
 	}
 	
-	void DisplayVec3Field(MaterialEditor materialEditor, MaterialProperty property) {
-		EditorGUI.showMixedValue = property.hasMixedValue;
-		Vector4 v0 = property.vectorValue;
+	void DisplayVec3Field(MaterialEditor materialEditor, string displayName, MaterialProperty xProp, MaterialProperty yProp, MaterialProperty zProp) {
+		materialEditor.BeginAnimatedCheck(xProp);
+		materialEditor.BeginAnimatedCheck(yProp);
+		materialEditor.BeginAnimatedCheck(zProp);
 		EditorGUI.BeginChangeCheck();
-		Vector3 v = EditorGUILayout.Vector3Field(property.displayName, new Vector3(v0.x, v0.y, v0.z));
-		if (EditorGUI.EndChangeCheck()) {
-			materialEditor.RegisterPropertyChangeUndo(property.displayName);
-			property.vectorValue = new Vector4(v.x, v.y, v.z, 0);
-		}
+		EditorGUI.showMixedValue = xProp.hasMixedValue || yProp.hasMixedValue || zProp.hasMixedValue;
+		
+		var oldLabelWidth = EditorGUIUtility.labelWidth;
+		EditorGUIUtility.labelWidth = 0f;
+		
+		Vector3 v = EditorGUILayout.Vector3Field(displayName, new Vector3(xProp.floatValue, yProp.floatValue, zProp.floatValue));
+		
+		EditorGUIUtility.labelWidth = oldLabelWidth;
+		
 		EditorGUI.showMixedValue = false;
+		
+		if (EditorGUI.EndChangeCheck()) {
+			xProp.floatValue = v.x;
+			yProp.floatValue = v.y;
+			zProp.floatValue = v.z;
+		}
+		
+		materialEditor.EndAnimatedCheck();
+		materialEditor.EndAnimatedCheck();
+		materialEditor.EndAnimatedCheck();
+	}
+	
+	void DisplayVec4Field(MaterialEditor materialEditor, string displayName, MaterialProperty xProp, MaterialProperty yProp, MaterialProperty zProp, MaterialProperty wProp) {
+		materialEditor.BeginAnimatedCheck(xProp);
+		materialEditor.BeginAnimatedCheck(yProp);
+		materialEditor.BeginAnimatedCheck(zProp);
+		materialEditor.BeginAnimatedCheck(wProp);
+		EditorGUI.BeginChangeCheck();
+		EditorGUI.showMixedValue = xProp.hasMixedValue || yProp.hasMixedValue || zProp.hasMixedValue || wProp.hasMixedValue;
+		
+		var oldLabelWidth = EditorGUIUtility.labelWidth;
+		EditorGUIUtility.labelWidth = 0f;
+		
+		Vector4 v = EditorGUILayout.Vector4Field(displayName, new Vector4(xProp.floatValue, yProp.floatValue, zProp.floatValue, wProp.floatValue));
+		
+		EditorGUIUtility.labelWidth = oldLabelWidth;
+		
+		EditorGUI.showMixedValue = false;
+		
+		if (EditorGUI.EndChangeCheck()) {
+			xProp.floatValue = v.x;
+			yProp.floatValue = v.y;
+			zProp.floatValue = v.z;
+			wProp.floatValue = v.w;
+		}
+		
+		materialEditor.EndAnimatedCheck();
+		materialEditor.EndAnimatedCheck();
+		materialEditor.EndAnimatedCheck();
+		materialEditor.EndAnimatedCheck();
 	}
 	
 	void DisplayIntField(MaterialEditor materialEditor, MaterialProperty property) {

@@ -1,7 +1,5 @@
 ﻿Shader "RedMage/Cancerspace" {
 	Properties {
-		_InspectorCategoryExpansionFlags ("DO NOT TOUCH", Int) = 0
-		
 		[Enum(UnityEngine.Rendering.CullMode)] _CullMode ("Cull Mode", Float) = 0
 		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Int) = 4
 		[Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Int) = 1
@@ -20,39 +18,56 @@
 		_MaxFalloff ("Falloff Range", Float) = 30
 		
 		_Zoom ("Zoom", Float) = 1
-		[PowerSlider(5.0)] _Pixelation ("Pixelation", Range(0, 1)) = 0
+		[PowerSlider(2.0)] _Pixelation ("Pixelation", Range(0, 1)) = 0
 		
-		[PowerSlider(2.0)]_XWobbleAmount ("X Wobble Amount", Range(0,1)) = 0
-		[PowerSlider(2.0)]_YWobbleAmount ("Y Wobble Amount", Range(0,1)) = 0
-		[PowerSlider(2.0)]_XWobbleTiling ("X Wobble Tiling", Range(0,3.141592653589793238)) = 0.1
-		[PowerSlider(2.0)]_YWobbleTiling ("Y Wobble Tiling", Range(0,3.141592653589793238)) = 0.1
-		_XWobbleSpeed ("X Wobble Speed", Float) = 300
-		_YWobbleSpeed ("Y Wobble Speed", Float) = 300
+		[PowerSlider(2.0)]_XWobbleAmount ("X Amount", Range(0,1)) = 0
+		[PowerSlider(2.0)]_YWobbleAmount ("Y Amount", Range(0,1)) = 0
+		[PowerSlider(2.0)]_XWobbleTiling ("X Tiling", Range(0,3.141592653589793238)) = 0.1
+		[PowerSlider(2.0)]_YWobbleTiling ("Y Tiling", Range(0,3.141592653589793238)) = 0.1
+		[PowerSlider(2.0)]_XWobbleSpeed ("X Speed", Range(0, 100)) = 100
+		[PowerSlider(2.0)]_YWobbleSpeed ("Y Speed", Range(0, 100)) = 100
 		
-		_XShake ("X Shake", Float) = 0
-		_YShake ("Y Shake", Float) = 0
-		_XShakeSpeed ("X Shake Speed", Float) = 200
-		_YShakeSpeed ("Y Shake Speed", Float) = 300
+		[PowerSlider(2.0)]_XShake ("X Shake", Range(0, 1)) = 0
+		[PowerSlider(2.0)]_YShake ("Y Shake", Range(0, 1)) = 0
+		_XShakeSpeed ("X Shake Speed", Range(0, 300)) = 200
+		_YShakeSpeed ("Y Shake Speed", Range(0, 300)) = 300
 		
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		[HDR] _OverlayColor ("Overlay Color", Color) = (1,1,1,1)
 		_BlendAmount ("Blend Amount", Range(0,1)) = 0.5
 		_BlendMode ("Blend Mode", Int) = 0
 		
-		_HSVAdd ("HSV Add", Vector) = (0,0,0,0)
-		_HSVMultiply ("HSV Multiply", Vector) = (1,1,1,1)
+		_HueAdd ("Hue Add", Range(-1, 1)) = 0
+		_SaturationAdd ("Saturation Add", Range(-1, 1)) = 0
+		_ValueAdd ("Value Add", Range(-1, 1)) = 0
+		_HueMultiply ("Hue Multiply", Range(-40, 40)) = 1
+		_SaturationMultiply ("Saturation Multiply", Range(0, 1)) = 1
+		_ValueMultiply ("Value Multiply", Range(0, 5)) = 1
+		
 		_InversionAmount ("Inversion Amount", Range(0,1)) = 0
 		[HDR] _Color ("Screen Color", Color) = (1,1,1,1)
 		
 		[Toggle(_)] _Burn ("Color Burning", Int) = 0
-		_BurnLow ("Color Burn Low", Float) = 0
-		_BurnHigh ("Color Burn High", Float) = 1
+		_BurnLow ("Color Burn Low", Range(-5, 5)) = 0
+		_BurnHigh ("Color Burn High", Range(-5, 5)) = 1
 		
 		[Enum(Clamp, 0, Repeat, 1)] _ScreenBoundaryHandling ("Screen Boundary Handling", Float) = 0
-		_ScreenXOffset ("Screen X Offset (RGB)", Vector) = (0,0,0,0)
-		_ScreenYOffset ("Screen Y Offset (RGB)", Vector) = (0,0,0,0)
-		_ScreenXMultiplier ("Screen X Multiplier (RGB)", Vector) = (1,1,1,1)
-		_ScreenYMultiplier ("Screen Y Multiplier (RGB)", Vector) = (1,1,1,1)
+		_ScreenXOffsetR ("Screen X Offset (Red)", Range(-1, 1)) = 0
+		_ScreenXOffsetG ("Screen X Offset (Green)", Range(-1, 1)) = 0
+		_ScreenXOffsetB ("Screen X Offset (Blue)", Range(-1, 1)) = 0
+		_ScreenXOffsetA ("Screen X Offset (All)", Range(-1, 1)) = 0
+		_ScreenYOffsetR ("Screen Y Offset (Red)", Range(-1, 1)) = 0
+		_ScreenYOffsetG ("Screen Y Offset (Green)", Range(-1, 1)) = 0
+		_ScreenYOffsetB ("Screen Y Offset (Blue)", Range(-1, 1)) = 0
+		_ScreenYOffsetA ("Screen Y Offset (All)", Range(-1, 1)) = 0
+		_ScreenXMultiplierR ("Screen X Multiplier (Red)", Range(-5, 5)) = 1
+		_ScreenXMultiplierG ("Screen X Multiplier (Green)", Range(-5, 5)) = 1
+		_ScreenXMultiplierB ("Screen X Multiplier (Blue)", Range(-5, 5)) = 1
+		_ScreenXMultiplierA ("Screen X Multiplier (All)", Range(-5, 5)) = 1
+		_ScreenYMultiplierR ("Screen Y Multiplier (Red)", Range(-5, 5)) = 1
+		_ScreenYMultiplierG ("Screen Y Multiplier (Green)", Range(-5, 5)) = 1
+		_ScreenYMultiplierB ("Screen Y Multiplier (Blue)", Range(-5, 5)) = 1
+		_ScreenYMultiplierA ("Screen Y Multiplier (All)", Range(-5, 5)) = 1
 		_ScreenRotationOriginX ("Screen Rotation Origin X (RGB)", Vector) = (0,0,0,.5)
 		_ScreenRotationOriginY ("Screen Rotation Origin Y (RGB)", Vector) = (0,0,0,.5)
 		_RotationAngle ("Screen Rotation Angle (RGB)", Vector) = (0,0,0,0)
@@ -93,9 +108,18 @@
 			#define BLENDMODE_DIVIDE 6
 			#define BLENDMODE_DARKEN 7
 			#define BLENDMODE_LIGHTEN 8
+			#define BLENDMODE_LERP 9
 			
 			#define BOUNDARYMODE_CLAMP 0
 			#define BOUNDARYMODE_REPEAT 1
+			
+			// apparently Unity doesn't animate vector fields properly, so time for some hacky workarounds
+			#define _ScreenXOffset float4(_ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA)
+			#define _ScreenYOffset float4(_ScreenYOffsetR, _ScreenYOffsetG, _ScreenYOffsetB, _ScreenYOffsetA)
+			#define _ScreenXMultiplier float4(_ScreenXMultiplierR, _ScreenXMultiplierG, _ScreenXMultiplierB, _ScreenXMultiplierA)
+			#define _ScreenYMultiplier float4(_ScreenYMultiplierR, _ScreenYMultiplierG, _ScreenYMultiplierB, _ScreenYMultiplierA)
+			#define _HSVAdd float3(_HueAdd, _SaturationAdd, _ValueAdd)
+			#define _HSVMultiply float3(_HueMultiply, _SaturationMultiply, _ValueMultiply)
 			
 			#include "UnityCG.cginc"
 
@@ -134,8 +158,8 @@
 			
 			float _Pixelation;
 			
-			float3 _HSVAdd;
-			float3 _HSVMultiply;
+			float _HueAdd, _SaturationAdd, _ValueAdd;
+			float _HueMultiply, _SaturationMultiply, _ValueMultiply;
 			
 			float _Zoom;
 			
@@ -148,10 +172,10 @@
 			
 			int _MirrorMode;
 			
-			float4 _ScreenXOffset;
-			float4 _ScreenYOffset;
-			float4 _ScreenXMultiplier;
-			float4 _ScreenYMultiplier;
+			float _ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA;
+			float _ScreenYOffsetR, _ScreenYOffsetG, _ScreenYOffsetB, _ScreenYOffsetA;
+			float _ScreenXMultiplierR, _ScreenXMultiplierG, _ScreenXMultiplierB, _ScreenXMultiplierA;
+			float _ScreenYMultiplierR, _ScreenYMultiplierG, _ScreenYMultiplierB, _ScreenYMultiplierA;
 			
 			float4 _ScreenRotationOriginX;
 			float4 _ScreenRotationOriginY;
@@ -192,7 +216,7 @@
 			float2 computeScreenSpaceOverlayUV(float3 worldSpacePos) {
 				float3 viewSpace = mul(UNITY_MATRIX_V, worldSpacePos - _WorldSpaceCameraPos);
 				float2 adjusted = viewSpace.xy / viewSpace.z;
-				return 1.0 - adjusted * float2(_ScreenParams.z / _ScreenParams.w, 1);
+				return .5 * (1 - adjusted * float2(_ScreenParams.z / _ScreenParams.w, 1));
 			}
 			
 			bool isInMirror() {
@@ -216,9 +240,14 @@
 				float3 originPoint = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
 				if (dot(originPoint, originPoint) > _MaxFalloff * _MaxFalloff) discard;
 				
+				float VRFix = 1;
+				#if defined(USING_STEREO_MATRICES)
+				VRFix = .5;
+				#endif
+				
 				float4 color = tex2D(_MainTex, TRANSFORM_TEX(computeScreenSpaceOverlayUV(i.posWorld), _MainTex)) * _OverlayColor;
 				
-				float2 displace = float2(_XShake, _YShake) * _Garb_TexelSize.xy * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed));
+				float2 displace = float2(_XShake * VRFix, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed));
 				
 				float2 grabUV = i.projPos.xy / i.projPos.w;
 				
@@ -228,14 +257,11 @@
 				
 				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
 				
-				// account for a discrepancy between VR and desktop.
-				#if defined(USING_STEREO_MATRICES)
-				wobbleTiling.x *= .5;
-				#endif
-				
 				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + wobbleTiling);
 				
 				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
+				
+				displace.x *= VRFix;
 				
 				grabUV += displace;
 				
@@ -244,10 +270,13 @@
 				UNITY_UNROLL for (int j = 0; j < 3; ++j) {
 					float2 multiplier = float2(_ScreenXMultiplier[j] * _ScreenXMultiplier.a, _ScreenYMultiplier[j] * _ScreenYMultiplier.a);
 					float2 shift = float2(_ScreenXOffset[j] + _ScreenXOffset.a, _ScreenYOffset[j] + _ScreenYOffset.a);
+					#if defined(USING_STEREO_MATRICES)
+					shift.x *= .5;
+					#endif
 					float rotationAngle = _RotationAngle[j] + _RotationAngle.a;
 					float2 rotationOrigin = float2(_ScreenRotationOriginX[j] + _ScreenRotationOriginX.a, _ScreenRotationOriginY[j] + _ScreenRotationOriginY.a);
 					
-					float2 uv = multiplier * (rotate(grabUV + shift * _Garb_TexelSize.xy - rotationOrigin, rotationAngle) + rotationOrigin);
+					float2 uv = multiplier * (rotate(grabUV + shift - rotationOrigin, rotationAngle) + rotationOrigin);
 					
 					switch (_ScreenBoundaryHandling) {
 						case BOUNDARYMODE_CLAMP:
@@ -286,9 +315,9 @@
 						blendedColor = 1 - (1 - finalScreenColor) * (1 - color.rgb);
 						break;
 					case BLENDMODE_OVERLAY:
-						UNITY_UNROLL for (int j = 0; j < 3; ++j) {
-							if (finalScreenColor[j] < .5) blendedColor[j] = 2 * finalScreenColor[j] * color[j];
-							else blendedColor[j] = 1 - 2 * (1 - finalScreenColor[j]) * (1 - color[j]);
+						UNITY_UNROLL for (int k = 0; k < 3; ++k) {
+							if (finalScreenColor[k] < .5) blendedColor[k] = 2 * finalScreenColor[k] * color[j];
+							else blendedColor[k] = 1 - 2 * (1 - finalScreenColor[k]) * (1 - color[k]);
 						}
 						break;
 					case BLENDMODE_ADD:
@@ -308,6 +337,9 @@
 						break;
 					case BLENDMODE_LIGHTEN:
 						blendedColor = max(finalScreenColor, color.rgb);
+						break;
+					case BLENDMODE_LERP:
+						blendedColor = color.rgb;
 						break;
 				}
 				
