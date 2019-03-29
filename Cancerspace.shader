@@ -35,6 +35,7 @@
 		[PowerSlider(2.0)]_YShake ("Y Shake", Range(0, 1)) = 0
 		_XShakeSpeed ("X Shake Speed", Range(0, 300)) = 200
 		_YShakeSpeed ("Y Shake Speed", Range(0, 300)) = 300
+		_ShakeAmplitude ("Shake Amplitude", Range(0, 2)) = 1
 		
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		[HDR] _OverlayColor ("Overlay Color", Color) = (1,1,1,1)
@@ -148,10 +149,9 @@
 			float4 _OverlayColor;
 			float4 _Color;
 			
-			float _XShake;
-			float _YShake;
-			float _XShakeSpeed;
-			float _YShakeSpeed;
+			float _XShake, _YShake;
+			float _XShakeSpeed, _YShakeSpeed;
+			float _ShakeAmplitude;
 			
 			float _XWobbleAmount, _YWobbleAmount, _XWobbleTiling, _YWobbleTiling, _XWobbleSpeed, _YWobbleSpeed;
 			
@@ -181,8 +181,7 @@
 			float _ScreenXMultiplierR, _ScreenXMultiplierG, _ScreenXMultiplierB, _ScreenXMultiplierA;
 			float _ScreenYMultiplierR, _ScreenYMultiplierG, _ScreenYMultiplierB, _ScreenYMultiplierA;
 			
-			float4 _ScreenRotationOriginX;
-			float4 _ScreenRotationOriginY;
+			float4 _ScreenRotationOriginX, _ScreenRotationOriginY;
 			
 			float4 _RotationAngle;
 			
@@ -264,7 +263,7 @@
 				
 				float4 color = tex2D(_MainTex, TRANSFORM_TEX(computeScreenSpaceOverlayUV(i.posWorld), _MainTex)) * _OverlayColor;
 				
-				float2 displace = float2(_XShake * VRFix, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed));
+				float2 displace = float2(_XShake * VRFix, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
 				
 				float2 grabUV = i.projPos.xy / i.projPos.w;
 				

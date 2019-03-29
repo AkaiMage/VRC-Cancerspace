@@ -95,6 +95,7 @@ public class CancerspaceInspector : ShaderGUI {
 	protected MaterialProperty shakeYAmount;
 	protected MaterialProperty shakeXSpeed;
 	protected MaterialProperty shakeYSpeed;
+	protected MaterialProperty shakeAmplitude;
 	
 	protected MaterialProperty overlayImage;
 	protected MaterialProperty overlayColor;
@@ -161,6 +162,7 @@ public class CancerspaceInspector : ShaderGUI {
 		shakeYAmount = FindProperty("_YShake", props);
 		shakeXSpeed = FindProperty("_XShakeSpeed", props);
 		shakeYSpeed = FindProperty("_YShakeSpeed", props);
+		shakeAmplitude = FindProperty("_ShakeAmplitude", props);
 		
 		overlayImage = FindProperty("_MainTex", props);
 		overlayColor = FindProperty("_OverlayColor", props);
@@ -252,11 +254,13 @@ public class CancerspaceInspector : ShaderGUI {
 					me.ShaderProperty(shakeYAmount, shakeYAmount.displayName);
 					me.ShaderProperty(shakeXSpeed, shakeXSpeed.displayName);
 					me.ShaderProperty(shakeYSpeed, shakeYSpeed.displayName);
+					me.ShaderProperty(shakeAmplitude, shakeAmplitude.displayName);
 				} else {
 					me.FloatProperty(shakeXAmount, shakeXAmount.displayName);
 					me.FloatProperty(shakeYAmount, shakeYAmount.displayName);
 					me.FloatProperty(shakeXSpeed, shakeXSpeed.displayName);
 					me.FloatProperty(shakeYSpeed, shakeYSpeed.displayName);
+					me.FloatProperty(shakeAmplitude, shakeAmplitude.displayName);
 				}
 			}),
 			
