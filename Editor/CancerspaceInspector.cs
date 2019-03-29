@@ -25,6 +25,7 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string targetObjectSettingsTitle = "Target Object Settings";
 		public static string falloffSettingsTitle = "Falloff Settings";
 		public static string wobbleSettingsTitle = "Wave Distortion";
+		public static string blurSettingsTitle = "Blur";
 		public static string screenShakeSettingsTitle = "Screen Shake";
 		public static string overlaySettingsTitle = "Overlay";
 		public static string screenColorAdjustmentsTitle = "Screen Color Adjustment";
@@ -75,6 +76,10 @@ public class CancerspaceInspector : ShaderGUI {
 	protected MaterialProperty puffiness;
 	
 	protected MaterialProperty falloffMaxDistance;
+	
+	protected MaterialProperty blurRadius;
+	protected MaterialProperty blurSampling;
+	protected MaterialProperty blurSamplingAnimated;
 	
 	protected MaterialProperty zoomAmount;
 	protected MaterialProperty pixelationAmount;
@@ -137,6 +142,10 @@ public class CancerspaceInspector : ShaderGUI {
 		puffiness = FindProperty("_Puffiness", props);
 		
 		falloffMaxDistance = FindProperty("_MaxFalloff", props);
+		
+		blurRadius = FindProperty("_BlurRadius", props);
+		blurSampling = FindProperty("_BlurSampling", props);
+		blurSamplingAnimated = FindProperty("_AnimatedSampling", props);
 		
 		zoomAmount = FindProperty("_Zoom", props);
 		pixelationAmount = FindProperty("_Pixelation", props);
@@ -225,6 +234,16 @@ public class CancerspaceInspector : ShaderGUI {
 					me.FloatProperty(wobbleXSpeed, wobbleXSpeed.displayName);
 					me.FloatProperty(wobbleYSpeed, wobbleYSpeed.displayName);
 				}
+			}),
+			
+			new CSCategory(Styles.blurSettingsTitle, defaultStyle, me => {
+				if (sliderMode) {
+					me.ShaderProperty(blurRadius, blurRadius.displayName);
+				} else {
+					me.FloatProperty(blurRadius, blurRadius.displayName);
+				}
+				DisplayIntSlider(me, blurSampling, 1, 5);
+				me.ShaderProperty(blurSamplingAnimated, blurSamplingAnimated.displayName);
 			}),
 			
 			new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {

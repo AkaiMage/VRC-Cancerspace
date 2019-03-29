@@ -17,6 +17,10 @@
 		
 		_MaxFalloff ("Falloff Range", Float) = 30
 		
+		_BlurRadius ("Blur Radius", Range(0, 50)) = 0
+		_BlurSampling ("Blur Sampling", Range(1, 5)) = 1
+		[Toggle(_)] _AnimatedSampling ("Animated Sampling", Float) = 1
+		
 		_Zoom ("Zoom", Float) = 1
 		[PowerSlider(2.0)] _Pixelation ("Pixelation", Range(0, 1)) = 0
 		
@@ -184,6 +188,19 @@
 			
 			float _ScreenBoundaryHandling;
 			
+			// blurring method is based on https://www.shadertoy.com/view/XsVBDR
+			
+			int _BlurSampling;
+			float _AnimatedSampling;
+			float _BlurRadius;
+			
+			float2 hash23(float3 p) {
+				if (_AnimatedSampling) p.z += frac(_Time.z) * 4;
+				p = frac(p * float3(400, 450, .1));
+				p += dot(p, p.yzx + 20);
+				return frac((p.xx + p.yz) * p.zy);
+			}
+			
 			float3 hsv2rgb(float3 c) {
 				return ((clamp(abs(frac(c.x+float3(0,.666,.333))*6-3)-1,0,1)-1)*c.y+1)*c.z;
 			}
@@ -267,31 +284,46 @@
 				
 				float4 grabCol = float4(0, 0, 0, 1);
 				
-				UNITY_UNROLL for (int j = 0; j < 3; ++j) {
-					float2 multiplier = float2(_ScreenXMultiplier[j] * _ScreenXMultiplier.a, _ScreenYMultiplier[j] * _ScreenYMultiplier.a);
-					float2 shift = float2(_ScreenXOffset[j] + _ScreenXOffset.a, _ScreenYOffset[j] + _ScreenYOffset.a);
-					#if defined(USING_STEREO_MATRICES)
-					shift.x *= .5;
-					#endif
-					float rotationAngle = _RotationAngle[j] + _RotationAngle.a;
-					float2 rotationOrigin = float2(_ScreenRotationOriginX[j] + _ScreenRotationOriginX.a, _ScreenRotationOriginY[j] + _ScreenRotationOriginY.a);
+				UNITY_LOOP for (int blurPass = 0; blurPass < _BlurSampling; ++blurPass) {
+					float2 blurNoiseRand = hash23(float3(grabUV, (float) blurPass));
 					
-					float2 uv = multiplier * (rotate(grabUV + shift - rotationOrigin, rotationAngle) + rotationOrigin);
+					blurNoiseRand.x *= UNITY_TWO_PI;
 					
-					switch (_ScreenBoundaryHandling) {
-						case BOUNDARYMODE_CLAMP:
-							/*
-							 * technically not necessary since this should happen automatically,
-							 * but I feel better about it by explicitly making sure it happens.
-							 */
-							uv = saturate(uv);
-							break;
-						case BOUNDARYMODE_REPEAT:
-							uv = frac(uv);
-							break;
+					float s, c;
+					sincos(blurNoiseRand.x, s, c);
+					
+					float2 sampleUV = grabUV + (blurNoiseRand.y * _BlurRadius * float2(s, c)) / (_Garb_TexelSize.zw);
+					
+					float4 col;
+					
+					UNITY_UNROLL for (int j = 0; j < 3; ++j) {
+						float2 multiplier = float2(_ScreenXMultiplier[j] * _ScreenXMultiplier.a, _ScreenYMultiplier[j] * _ScreenYMultiplier.a);
+						float2 shift = float2(_ScreenXOffset[j] + _ScreenXOffset.a, _ScreenYOffset[j] + _ScreenYOffset.a);
+						#if defined(USING_STEREO_MATRICES)
+						shift.x *= .5;
+						#endif
+						float rotationAngle = _RotationAngle[j] + _RotationAngle.a;
+						float2 rotationOrigin = float2(_ScreenRotationOriginX[j] + _ScreenRotationOriginX.a, _ScreenRotationOriginY[j] + _ScreenRotationOriginY.a);
+						
+						float2 uv = multiplier * (rotate(sampleUV + shift - rotationOrigin, rotationAngle) + rotationOrigin);
+						
+						switch (_ScreenBoundaryHandling) {
+							case BOUNDARYMODE_CLAMP:
+								/*
+								 * technically not necessary since this should happen automatically,
+								 * but I feel better about it by explicitly making sure it happens.
+								 */
+								uv = saturate(uv);
+								break;
+							case BOUNDARYMODE_REPEAT:
+								uv = frac(uv);
+								break;
+						}
+						
+						col[j] = tex2D(_Garb, uv)[j];
 					}
 					
-					grabCol[j] = tex2D(_Garb, uv)[j];
+					grabCol = lerp(grabCol, col, 1 / (float) (blurPass + 1));
 				}
 				
 				float3 hsv = rgb2hsv(grabCol.rgb) * _HSVMultiply + _HSVAdd;
@@ -316,7 +348,7 @@
 						break;
 					case BLENDMODE_OVERLAY:
 						UNITY_UNROLL for (int k = 0; k < 3; ++k) {
-							if (finalScreenColor[k] < .5) blendedColor[k] = 2 * finalScreenColor[k] * color[j];
+							if (finalScreenColor[k] < .5) blendedColor[k] = 2 * finalScreenColor[k] * color[k];
 							else blendedColor[k] = 1 - 2 * (1 - finalScreenColor[k]) * (1 - color[k]);
 						}
 						break;
