@@ -31,6 +31,11 @@
 		[PowerSlider(2.0)]_XWobbleSpeed ("X Speed", Range(0, 100)) = 100
 		[PowerSlider(2.0)]_YWobbleSpeed ("Y Speed", Range(0, 100)) = 100
 		
+		_BumpMap ("Distortion Map (Normal)", 2D) = "bump" {}
+		_DistortionAmplitude ("Amplitude", Range(-1, 1)) = 0.1
+		_BumpMapScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
+		_BumpMapScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
+		
 		[PowerSlider(2.0)]_XShake ("X Shake", Range(0, 1)) = 0
 		[PowerSlider(2.0)]_YShake ("Y Shake", Range(0, 1)) = 0
 		_XShakeSpeed ("X Shake Speed", Range(0, 300)) = 200
@@ -193,6 +198,11 @@
 			float _AnimatedSampling;
 			float _BlurRadius;
 			
+			sampler2D _BumpMap;
+			float4 _BumpMap_ST;
+			float _DistortionAmplitude;
+			float _BumpMapScrollSpeedX, _BumpMapScrollSpeedY;
+			
 			float2 hash23(float3 p) {
 				if (_AnimatedSampling) p.z += frac(_Time.z) * 4;
 				p = frac(p * float3(400, 450, .1));
@@ -261,9 +271,12 @@
 				VRFix = .5;
 				#endif
 				
-				float4 color = tex2D(_MainTex, TRANSFORM_TEX(computeScreenSpaceOverlayUV(i.posWorld), _MainTex)) * _OverlayColor;
+				float2 screenSpaceOverlayUV = computeScreenSpaceOverlayUV(i.posWorld);
+				float4 color = tex2D(_MainTex, TRANSFORM_TEX(screenSpaceOverlayUV, _MainTex)) * _OverlayColor;
 				
-				float2 displace = float2(_XShake * VRFix, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
+				float2 displace = float2(_XShake, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
+				displace += UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX(screenSpaceOverlayUV + _Time.yy * float2(_BumpMapScrollSpeedX, _BumpMapScrollSpeedY), _BumpMap))).xy * _DistortionAmplitude;
+				displace.x *= VRFix;
 				
 				float2 grabUV = i.projPos.xy / i.projPos.w;
 				

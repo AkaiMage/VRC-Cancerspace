@@ -26,6 +26,7 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string falloffSettingsTitle = "Falloff Settings";
 		public static string wobbleSettingsTitle = "Wave Distortion";
 		public static string blurSettingsTitle = "Blur";
+		public static string distortionMapSettingsTitle = "Distortion Mapping";
 		public static string screenShakeSettingsTitle = "Screen Shake";
 		public static string overlaySettingsTitle = "Overlay";
 		public static string screenColorAdjustmentsTitle = "Screen Color Adjustment";
@@ -123,6 +124,11 @@ public class CancerspaceInspector : ShaderGUI {
 	
 	protected MaterialProperty mirrorReflectionMode;
 	
+	protected MaterialProperty distortionMap;
+	protected MaterialProperty distortionAmplitude;
+	protected MaterialProperty distortionScrollSpeedX;
+	protected MaterialProperty distortionScrollSpeedY;
+	
 	protected int customRenderQueue;
 	protected bool initialized;
 	
@@ -157,6 +163,11 @@ public class CancerspaceInspector : ShaderGUI {
 		wobbleYTiling = FindProperty("_YWobbleTiling", props);
 		wobbleXSpeed = FindProperty("_XWobbleSpeed", props);
 		wobbleYSpeed = FindProperty("_YWobbleSpeed", props);
+		
+		distortionMap = FindProperty("_BumpMap", props);
+		distortionAmplitude = FindProperty("_DistortionAmplitude", props);
+		distortionScrollSpeedX = FindProperty("_BumpMapScrollSpeedX", props);
+		distortionScrollSpeedY = FindProperty("_BumpMapScrollSpeedY", props);
 
 		shakeXAmount = FindProperty("_XShake", props);
 		shakeYAmount = FindProperty("_YShake", props);
@@ -246,6 +257,19 @@ public class CancerspaceInspector : ShaderGUI {
 				}
 				DisplayIntSlider(me, blurSampling, 1, 5);
 				me.ShaderProperty(blurSamplingAnimated, blurSamplingAnimated.displayName);
+			}),
+			
+			new CSCategory(Styles.distortionMapSettingsTitle, defaultStyle, me => {
+				me.ShaderProperty(distortionMap, distortionMap.displayName);
+				if (sliderMode) {
+					me.ShaderProperty(distortionAmplitude, distortionAmplitude.displayName);
+					me.ShaderProperty(distortionScrollSpeedX, distortionScrollSpeedX.displayName);
+					me.ShaderProperty(distortionScrollSpeedY, distortionScrollSpeedY.displayName);
+				} else {
+					me.FloatProperty(distortionAmplitude, distortionAmplitude.displayName);
+					me.FloatProperty(distortionScrollSpeedX, distortionScrollSpeedX.displayName);
+					me.FloatProperty(distortionScrollSpeedY, distortionScrollSpeedY.displayName);
+				}
 			}),
 			
 			new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {
