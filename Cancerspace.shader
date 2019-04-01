@@ -275,7 +275,7 @@
 				float4 color = tex2D(_MainTex, TRANSFORM_TEX(screenSpaceOverlayUV, _MainTex)) * _OverlayColor;
 				
 				float2 displace = float2(_XShake, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
-				displace += UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX(screenSpaceOverlayUV + _Time.yy * float2(_BumpMapScrollSpeedX, _BumpMapScrollSpeedY), _BumpMap))).xy * _DistortionAmplitude;
+				displace += UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * float2(_BumpMapScrollSpeedX, _BumpMapScrollSpeedY)), _BumpMap))).xy * _DistortionAmplitude;
 				displace.x *= VRFix;
 				
 				float2 grabUV = i.projPos.xy / i.projPos.w;
