@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -21,6 +22,8 @@ public class CancerspaceInspector : ShaderGUI {
 	
 	public static class Styles {
 		public static string sliderModeCheckboxText = "Sliders for dummies";
+		public static string randomizerOptionsCheckboxText = "Show Randomizer Controls";
+		public static string shouldRandomizeCheckboxText = "Allow randomization";
 		public static GUIContent overlayImageText = new GUIContent("Image Overlay", "The overlay image and color.");
 		public static string targetObjectSettingsTitle = "Target Object Settings";
 		public static string targetObjectPositionText = "Position";
@@ -54,6 +57,7 @@ public class CancerspaceInspector : ShaderGUI {
 		public string name;
 		public GUIStyle style;
 		public CSCategorySetup setupDelegate;
+		
 		public CSCategory(string nname, GUIStyle sstyle, CSCategorySetup ssetupDelegate) {
 			name = nname;
 			style = sstyle;
@@ -61,84 +65,101 @@ public class CancerspaceInspector : ShaderGUI {
 		}
 	}
 	
+	public class CSProperty {
+		public MaterialProperty prop;
+		
+		public CSProperty(MaterialProperty property) {
+			prop = property;
+		}
+		
+		public static implicit operator CSProperty(MaterialProperty property) {
+			return new CSProperty(property);
+		}
+	}
+	
 	protected static bool sliderMode = true;
 	protected static int categoryExpansionFlags;
+	private static bool showRandomizerOptions = false;
+	private static HashSet<String> propertiesWithRandomization = new HashSet<String>();
 	
-	protected MaterialProperty cullMode;
-	protected MaterialProperty zTest;
-	protected MaterialProperty zWrite;
-	protected MaterialProperty colorMask;
+	protected CSProperty cullMode;
+	protected CSProperty zTest;
+	protected CSProperty zWrite;
+	protected CSProperty colorMask;
 	
-	protected MaterialProperty stencilRef;
-	protected MaterialProperty stencilComp;
-	protected MaterialProperty stencilPass;
-	protected MaterialProperty stencilFail;
-	protected MaterialProperty stencilZFail;
-	protected MaterialProperty stencilReadMask;
-	protected MaterialProperty stencilWriteMask;
+	protected CSProperty stencilRef;
+	protected CSProperty stencilComp;
+	protected CSProperty stencilPass;
+	protected CSProperty stencilFail;
+	protected CSProperty stencilZFail;
+	protected CSProperty stencilReadMask;
+	protected CSProperty stencilWriteMask;
 	
-	protected MaterialProperty puffiness;
-	protected MaterialProperty objectPositionX, objectPositionY, objectPositionZ, objectPositionA;
-	protected MaterialProperty objectRotationX, objectRotationY, objectRotationZ, objectRotationA;
-	protected MaterialProperty objectScaleX, objectScaleY, objectScaleZ, objectScaleA;
+	protected CSProperty puffiness;
+	protected CSProperty objectPositionX, objectPositionY, objectPositionZ, objectPositionA;
+	protected CSProperty objectRotationX, objectRotationY, objectRotationZ, objectRotationA;
+	protected CSProperty objectScaleX, objectScaleY, objectScaleZ, objectScaleA;
 	
-	protected MaterialProperty falloffMaxDistance;
+	protected CSProperty falloffMaxDistance;
 	
-	protected MaterialProperty blurRadius;
-	protected MaterialProperty blurSampling;
-	protected MaterialProperty blurSamplingAnimated;
+	protected CSProperty blurRadius;
+	protected CSProperty blurSampling;
+	protected CSProperty blurSamplingAnimated;
 	
-	protected MaterialProperty zoomAmount;
-	protected MaterialProperty pixelationAmount;
+	protected CSProperty zoomAmount;
+	protected CSProperty pixelationAmount;
 	
-	protected MaterialProperty wobbleXAmount;
-	protected MaterialProperty wobbleYAmount;
-	protected MaterialProperty wobbleXTiling;
-	protected MaterialProperty wobbleYTiling;
-	protected MaterialProperty wobbleXSpeed;
-	protected MaterialProperty wobbleYSpeed;
+	protected CSProperty wobbleXAmount;
+	protected CSProperty wobbleYAmount;
+	protected CSProperty wobbleXTiling;
+	protected CSProperty wobbleYTiling;
+	protected CSProperty wobbleXSpeed;
+	protected CSProperty wobbleYSpeed;
 	
-	protected MaterialProperty shakeXAmount;
-	protected MaterialProperty shakeYAmount;
-	protected MaterialProperty shakeXSpeed;
-	protected MaterialProperty shakeYSpeed;
-	protected MaterialProperty shakeAmplitude;
+	protected CSProperty shakeXAmount;
+	protected CSProperty shakeYAmount;
+	protected CSProperty shakeXSpeed;
+	protected CSProperty shakeYSpeed;
+	protected CSProperty shakeAmplitude;
 	
-	protected MaterialProperty overlayImage;
-	protected MaterialProperty overlayScrollSpeedX;
-	protected MaterialProperty overlayScrollSpeedY;
-	protected MaterialProperty overlayColor;
-	protected MaterialProperty overlayBlendAmount;
-	protected MaterialProperty overlayBlendMode;
+	protected CSProperty overlayImage;
+	protected CSProperty overlayScrollSpeedX;
+	protected CSProperty overlayScrollSpeedY;
+	protected CSProperty overlayColor;
+	protected CSProperty overlayBlendAmount;
+	protected CSProperty overlayBlendMode;
 
-	protected MaterialProperty screenHueAdd, screenSaturationAdd, screenValueAdd;
-	protected MaterialProperty screenHueMultiply, screenSaturationMultiply, screenValueMultiply;
+	protected CSProperty screenHueAdd, screenSaturationAdd, screenValueAdd;
+	protected CSProperty screenHueMultiply, screenSaturationMultiply, screenValueMultiply;
 	
-	protected MaterialProperty screenInversion;
-	protected MaterialProperty screenColor;
+	protected CSProperty screenInversion;
+	protected CSProperty screenColor;
 	
-	protected MaterialProperty colorBurningToggle;
-	protected MaterialProperty colorBurningLow;
-	protected MaterialProperty colorBurningHigh;
+	protected CSProperty colorBurningToggle;
+	protected CSProperty colorBurningLow;
+	protected CSProperty colorBurningHigh;
 	
-	protected MaterialProperty screenBoundaryHandling;
-	protected MaterialProperty screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA;
-	protected MaterialProperty screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA;
-	protected MaterialProperty screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA;
-	protected MaterialProperty screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA;
-	protected MaterialProperty screenXRotationOrigin;
-	protected MaterialProperty screenYRotationOrigin;
-	protected MaterialProperty screenRotationAngle;
+	protected CSProperty screenBoundaryHandling;
+	protected CSProperty screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA;
+	protected CSProperty screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA;
+	protected CSProperty screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA;
+	protected CSProperty screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA;
+	protected CSProperty screenXRotationOrigin;
+	protected CSProperty screenYRotationOrigin;
+	protected CSProperty screenRotationAngle;
 	
-	protected MaterialProperty mirrorReflectionMode;
+	protected CSProperty mirrorReflectionMode;
 	
-	protected MaterialProperty distortionMap;
-	protected MaterialProperty distortionAmplitude;
-	protected MaterialProperty distortionScrollSpeedX;
-	protected MaterialProperty distortionScrollSpeedY;
+	protected CSProperty distortionMap;
+	protected CSProperty distortionAmplitude;
+	protected CSProperty distortionScrollSpeedX;
+	protected CSProperty distortionScrollSpeedY;
 	
 	protected int customRenderQueue;
 	protected bool initialized;
+	
+	private bool randomizingCurrentPass;
+	private System.Random rng;
 	
 	public void FindProperties(MaterialProperty[] props) {
 		cullMode = FindProperty("_CullMode", props);
@@ -244,6 +265,7 @@ public class CancerspaceInspector : ShaderGUI {
 		
 		if (!initialized) {
 			customRenderQueue = (materialEditor.target as Material).shader.renderQueue;
+			rng = new System.Random();
 			initialized = true;
 		}
 		
@@ -254,118 +276,81 @@ public class CancerspaceInspector : ShaderGUI {
 		
 		CSCategory[] categories = new CSCategory[] {
 			new CSCategory(Styles.falloffSettingsTitle, defaultStyle, me => {
-				me.ShaderProperty(falloffMaxDistance, falloffMaxDistance.displayName);
+				DisplayRegularProperty(me, falloffMaxDistance);
 			}),
 			
 			new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {
-				if (sliderMode) {
-					me.ShaderProperty(shakeXAmount, shakeXAmount.displayName);
-					me.ShaderProperty(shakeYAmount, shakeYAmount.displayName);
-					me.ShaderProperty(shakeXSpeed, shakeXSpeed.displayName);
-					me.ShaderProperty(shakeYSpeed, shakeYSpeed.displayName);
-					me.ShaderProperty(shakeAmplitude, shakeAmplitude.displayName);
-				} else {
-					me.FloatProperty(shakeXAmount, shakeXAmount.displayName);
-					me.FloatProperty(shakeYAmount, shakeYAmount.displayName);
-					me.FloatProperty(shakeXSpeed, shakeXSpeed.displayName);
-					me.FloatProperty(shakeYSpeed, shakeYSpeed.displayName);
-					me.FloatProperty(shakeAmplitude, shakeAmplitude.displayName);
-				}
+				DisplayFloatWithSliderMode(me, shakeXAmount);
+				DisplayFloatWithSliderMode(me, shakeYAmount);
+				DisplayFloatWithSliderMode(me, shakeXSpeed);
+				DisplayFloatWithSliderMode(me, shakeYSpeed);
+				DisplayFloatWithSliderMode(me, shakeAmplitude);
 			}),
 			
 			new CSCategory(Styles.wobbleSettingsTitle, defaultStyle, me => {
-				me.ShaderProperty(wobbleXAmount, wobbleXAmount.displayName);
-				me.ShaderProperty(wobbleYAmount, wobbleYAmount.displayName);
-				me.ShaderProperty(wobbleXTiling, wobbleXTiling.displayName);
-				me.ShaderProperty(wobbleYTiling, wobbleYTiling.displayName);
-				if (sliderMode) {
-					me.ShaderProperty(wobbleXSpeed, wobbleXSpeed.displayName);
-					me.ShaderProperty(wobbleYSpeed, wobbleYSpeed.displayName);
-				} else {
-					me.FloatProperty(wobbleXSpeed, wobbleXSpeed.displayName);
-					me.FloatProperty(wobbleYSpeed, wobbleYSpeed.displayName);
-				}
+				DisplayFloatRangeProperty(me, wobbleXAmount);
+				DisplayFloatRangeProperty(me, wobbleYAmount);
+				DisplayFloatRangeProperty(me, wobbleXTiling);
+				DisplayFloatRangeProperty(me, wobbleYTiling);
+				DisplayFloatWithSliderMode(me, wobbleXSpeed);
+				DisplayFloatWithSliderMode(me, wobbleYSpeed);
 			}),
 			
 			new CSCategory(Styles.blurSettingsTitle, defaultStyle, me => {
-				if (sliderMode) {
-					me.ShaderProperty(blurRadius, blurRadius.displayName);
-				} else {
-					me.FloatProperty(blurRadius, blurRadius.displayName);
-				}
+				DisplayFloatWithSliderMode(me, blurRadius);
 				DisplayIntSlider(me, blurSampling, 1, 5);
-				me.ShaderProperty(blurSamplingAnimated, blurSamplingAnimated.displayName);
+				DisplayRegularProperty(me, blurSamplingAnimated);
 			}),
 			
 			new CSCategory(Styles.distortionMapSettingsTitle, defaultStyle, me => {
-				me.ShaderProperty(distortionMap, distortionMap.displayName);
-				if (sliderMode) {
-					me.ShaderProperty(distortionAmplitude, distortionAmplitude.displayName);
-					me.ShaderProperty(distortionScrollSpeedX, distortionScrollSpeedX.displayName);
-					me.ShaderProperty(distortionScrollSpeedY, distortionScrollSpeedY.displayName);
-				} else {
-					me.FloatProperty(distortionAmplitude, distortionAmplitude.displayName);
-					me.FloatProperty(distortionScrollSpeedX, distortionScrollSpeedX.displayName);
-					me.FloatProperty(distortionScrollSpeedY, distortionScrollSpeedY.displayName);
-				}
+				DisplayRegularProperty(me, distortionMap);
+				DisplayFloatWithSliderMode(me, distortionAmplitude);
+				DisplayFloatWithSliderMode(me, distortionScrollSpeedX);
+				DisplayFloatWithSliderMode(me, distortionScrollSpeedY);
 			}),
 			
 			new CSCategory(Styles.overlaySettingsTitle, defaultStyle, me => {
 				BlendModePopup(me);
-				me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage, overlayColor);
-				me.TextureScaleOffsetProperty(overlayImage);
-				me.ShaderProperty(overlayBlendAmount, overlayBlendAmount.displayName);
-				if (sliderMode) {
-					me.ShaderProperty(overlayScrollSpeedX, overlayScrollSpeedX.displayName);
-					me.ShaderProperty(overlayScrollSpeedY, overlayScrollSpeedY.displayName);
-				} else {
-					me.FloatProperty(overlayScrollSpeedX, overlayScrollSpeedX.displayName);
-					me.FloatProperty(overlayScrollSpeedY, overlayScrollSpeedY.displayName);
-				}
+				me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
+				me.TextureScaleOffsetProperty(overlayImage.prop);
+				DisplayFloatRangeProperty(me, overlayBlendAmount);
+				DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
+				DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
 			}),
 			
 			new CSCategory(Styles.screenColorAdjustmentsTitle, defaultStyle, me => {
-				if (sliderMode) {
-					me.ShaderProperty(screenHueAdd, screenHueAdd.displayName);
-					me.ShaderProperty(screenSaturationAdd, screenSaturationAdd.displayName);
-					me.ShaderProperty(screenValueAdd, screenValueAdd.displayName);
-					me.ShaderProperty(screenHueMultiply, screenHueMultiply.displayName);
-					me.ShaderProperty(screenSaturationMultiply, screenSaturationMultiply.displayName);
-					me.ShaderProperty(screenValueMultiply, screenValueMultiply.displayName);
-				} else {
-					DisplayVec3Field(me, Styles.hsvAddText, screenHueAdd, screenSaturationAdd, screenValueAdd);
-					DisplayVec3Field(me, Styles.hsvMultiplyText, screenHueMultiply, screenSaturationMultiply, screenValueMultiply);
-				}
-				me.ShaderProperty(screenInversion, screenInversion.displayName);
-				me.ShaderProperty(screenColor, screenColor.displayName);
-				me.ShaderProperty(colorBurningToggle, colorBurningToggle.displayName);
-				if (colorBurningToggle.floatValue == 1) {
-					me.ShaderProperty(colorBurningLow, colorBurningLow.displayName);
-					me.ShaderProperty(colorBurningHigh, colorBurningHigh.displayName);
+				DisplayVec3WithSliderMode(me, Styles.hsvAddText, screenHueAdd, screenSaturationAdd, screenValueAdd);
+				DisplayVec3WithSliderMode(me, Styles.hsvMultiplyText, screenHueMultiply, screenSaturationMultiply, screenValueMultiply);
+				DisplayFloatRangeProperty(me, screenInversion);
+				DisplayFloatRangeProperty(me, screenColor);
+				DisplayRegularProperty(me, colorBurningToggle);
+				if (colorBurningToggle.prop.floatValue == 1) {
+					DisplayFloatRangeProperty(me, colorBurningLow);
+					DisplayFloatRangeProperty(me, colorBurningHigh);
 				}
 			}),
 			
 			new CSCategory(Styles.screenTransformTitle, defaultStyle, me => {
-				me.ShaderProperty(screenBoundaryHandling, screenBoundaryHandling.displayName);
-				me.ShaderProperty(zoomAmount, zoomAmount.displayName);
-				me.ShaderProperty(pixelationAmount, pixelationAmount.displayName);
+				DisplayRegularProperty(me, screenBoundaryHandling);
+				DisplayRegularProperty(me, zoomAmount);
+				DisplayRegularProperty(me, pixelationAmount);
 				if (sliderMode) {
-					me.ShaderProperty(screenXOffsetA, screenXOffsetA.displayName);
-					me.ShaderProperty(screenYOffsetA, screenYOffsetA.displayName);
-					me.ShaderProperty(screenXOffsetR, screenXOffsetR.displayName);
-					me.ShaderProperty(screenYOffsetR, screenYOffsetR.displayName);
-					me.ShaderProperty(screenXOffsetG, screenXOffsetG.displayName);
-					me.ShaderProperty(screenYOffsetG, screenYOffsetG.displayName);
-					me.ShaderProperty(screenXOffsetB, screenXOffsetB.displayName);
-					me.ShaderProperty(screenYOffsetB, screenYOffsetB.displayName);
-					me.ShaderProperty(screenXMultiplierA, screenXMultiplierA.displayName);
-					me.ShaderProperty(screenYMultiplierA, screenYMultiplierA.displayName);
-					me.ShaderProperty(screenXMultiplierR, screenXMultiplierR.displayName);
-					me.ShaderProperty(screenYMultiplierR, screenYMultiplierR.displayName);
-					me.ShaderProperty(screenXMultiplierG, screenXMultiplierG.displayName);
-					me.ShaderProperty(screenYMultiplierG, screenYMultiplierG.displayName);
-					me.ShaderProperty(screenXMultiplierB, screenXMultiplierB.displayName);
-					me.ShaderProperty(screenYMultiplierB, screenYMultiplierB.displayName);
+					DisplayFloatRangeProperty(me, screenXOffsetA);
+					DisplayFloatRangeProperty(me, screenYOffsetA);
+					DisplayFloatRangeProperty(me, screenXOffsetR);
+					DisplayFloatRangeProperty(me, screenYOffsetR);
+					DisplayFloatRangeProperty(me, screenXOffsetG);
+					DisplayFloatRangeProperty(me, screenYOffsetG);
+					DisplayFloatRangeProperty(me, screenXOffsetB);
+					DisplayFloatRangeProperty(me, screenYOffsetB);
+					DisplayFloatRangeProperty(me, screenXMultiplierA);
+					DisplayFloatRangeProperty(me, screenYMultiplierA);
+					DisplayFloatRangeProperty(me, screenXMultiplierR);
+					DisplayFloatRangeProperty(me, screenYMultiplierR);
+					DisplayFloatRangeProperty(me, screenXMultiplierG);
+					DisplayFloatRangeProperty(me, screenYMultiplierG);
+					DisplayFloatRangeProperty(me, screenXMultiplierB);
+					DisplayFloatRangeProperty(me, screenYMultiplierB);
 				} else {
 					DisplayVec4Field(me, Styles.screenXOffsetText, screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA);
 					DisplayVec4Field(me, Styles.screenYOffsetText, screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA);
@@ -381,25 +366,25 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayVec4Field(me, Styles.targetObjectPositionText, objectPositionX, objectPositionY, objectPositionZ, objectPositionA);
 				DisplayVec4Field(me, Styles.targetObjectRotationText, objectRotationX, objectRotationY, objectRotationZ, objectRotationA);
 				DisplayVec4Field(me, Styles.targetObjectScaleText, objectScaleX, objectScaleY, objectScaleZ, objectScaleA);
-				me.ShaderProperty(puffiness, puffiness.displayName);
+				DisplayRegularProperty(me, puffiness);
 			}),
 			
 			new CSCategory(Styles.stencilTitle, defaultStyle, me => {
 				DisplayIntSlider(me, stencilRef, 0, 255);
-				me.ShaderProperty(stencilComp, stencilComp.displayName);
-				me.ShaderProperty(stencilPass, stencilPass.displayName);
-				me.ShaderProperty(stencilFail, stencilFail.displayName);
-				me.ShaderProperty(stencilZFail, stencilZFail.displayName);
+				DisplayRegularProperty(me, stencilComp);
+				DisplayRegularProperty(me, stencilPass);
+				DisplayRegularProperty(me, stencilFail);
+				DisplayRegularProperty(me, stencilZFail);
 				DisplayIntSlider(me, stencilReadMask, 0, 255);
 				DisplayIntSlider(me, stencilWriteMask, 0, 255);
 			}),
 			
 			new CSCategory(Styles.miscSettingsTitle, defaultStyle, me => {
-				me.ShaderProperty(cullMode, cullMode.displayName);
-				me.ShaderProperty(zTest, zTest.displayName);
-				me.ShaderProperty(zWrite, zWrite.displayName);
+				DisplayRegularProperty(me, cullMode);
+				DisplayRegularProperty(me, zTest);
+				DisplayRegularProperty(me, zWrite);
 				ShowColorMaskFlags(me, colorMask);
-				me.ShaderProperty(mirrorReflectionMode, mirrorReflectionMode.displayName);
+				DisplayRegularProperty(me, mirrorReflectionMode);
 			}),
 			
 			new CSCategory(Styles.renderQueueExportTitle, defaultStyle, me => {
@@ -455,7 +440,10 @@ public class CancerspaceInspector : ShaderGUI {
 		EditorGUIUtility.labelWidth = 0f;
 		
 		sliderMode = EditorGUILayout.ToggleLeft(Styles.sliderModeCheckboxText, sliderMode);
-		
+		showRandomizerOptions = EditorGUILayout.ToggleLeft(Styles.randomizerOptionsCheckboxText, showRandomizerOptions);
+		if (showRandomizerOptions) {
+			randomizingCurrentPass = GUILayout.Button("Randomize Values");
+		}
 		
 		int oldflags = categoryExpansionFlags;
 		int newflags = 0;
@@ -473,21 +461,77 @@ public class CancerspaceInspector : ShaderGUI {
 		
 		GUI.enabled = false;
 		materialEditor.RenderQueueField();
+		
+		randomizingCurrentPass = false;
 	}
 	
 	void BlendModePopup(MaterialEditor materialEditor) {
-		EditorGUI.showMixedValue = overlayBlendMode.hasMixedValue;
-		var mode = (BlendMode) overlayBlendMode.floatValue;
+		EditorGUI.showMixedValue = overlayBlendMode.prop.hasMixedValue;
+		var mode = (BlendMode) overlayBlendMode.prop.floatValue;
 		EditorGUI.BeginChangeCheck();
-		mode = (BlendMode) EditorGUILayout.Popup(overlayBlendMode.displayName, (int) mode, Styles.blendNames);
+		mode = (BlendMode) EditorGUILayout.Popup(overlayBlendMode.prop.displayName, (int) mode, Styles.blendNames);
 		if (EditorGUI.EndChangeCheck()) {
-			materialEditor.RegisterPropertyChangeUndo(overlayBlendMode.displayName);
-			overlayBlendMode.floatValue = (float) mode;
+			materialEditor.RegisterPropertyChangeUndo(overlayBlendMode.prop.displayName);
+			overlayBlendMode.prop.floatValue = (float) mode;
 		}
 		EditorGUI.showMixedValue = false;
 	}
 	
-	void DisplayVec3Field(MaterialEditor materialEditor, string displayName, MaterialProperty xProp, MaterialProperty yProp, MaterialProperty zProp) {
+	void DisplayRegularProperty(MaterialEditor me, CSProperty prop) {
+		me.ShaderProperty(prop.prop, prop.prop.displayName);
+	}
+	
+	void DisplayFloatRangeProperty(MaterialEditor me, CSProperty prop, bool randomizable = true) {
+		bool randomizationEnabled = propertiesWithRandomization.Contains(prop.prop.name);
+		if (randomizationEnabled && randomizingCurrentPass) {
+			// TODO: make ranges more configurable
+			prop.prop.floatValue = (float) (rng.NextDouble() * (prop.prop.rangeLimits.y - prop.prop.rangeLimits.x) + prop.prop.rangeLimits.x);
+		}
+		me.RangeProperty(prop.prop, prop.prop.displayName);
+		if (randomizable && showRandomizerOptions) {
+			bool newState = EditorGUILayout.ToggleLeft(Styles.shouldRandomizeCheckboxText, randomizationEnabled);
+			if (newState != randomizationEnabled) {
+				if (newState) propertiesWithRandomization.Add(prop.prop.name);
+				else propertiesWithRandomization.Remove(prop.prop.name);
+			}
+		}
+	}
+	
+	void DisplayFloatProperty(MaterialEditor me, CSProperty prop, bool randomizable = true) {
+		bool randomizationEnabled = propertiesWithRandomization.Contains(prop.prop.name);
+		if (randomizationEnabled && randomizingCurrentPass) {
+			// TODO: make ranges more configurable
+			prop.prop.floatValue = (float) (rng.NextDouble() * 100);
+		}
+		me.FloatProperty(prop.prop, prop.prop.displayName);
+		if (randomizable && showRandomizerOptions) {
+			bool newState = EditorGUILayout.ToggleLeft(Styles.shouldRandomizeCheckboxText, randomizationEnabled);
+			if (newState != randomizationEnabled) {
+				if (newState) propertiesWithRandomization.Add(prop.prop.name);
+				else propertiesWithRandomization.Remove(prop.prop.name);
+			}
+		}
+	}
+	
+	void DisplayFloatWithSliderMode(MaterialEditor me, CSProperty prop, bool randomizable = true) {
+		if (sliderMode) DisplayFloatRangeProperty(me, prop, randomizable);
+		else DisplayFloatProperty(me, prop, randomizable);
+	}
+	
+	void DisplayVec3WithSliderMode(MaterialEditor me, string displayName, CSProperty xProp, CSProperty yProp, CSProperty zProp) {
+		if (sliderMode) {
+			DisplayFloatRangeProperty(me, xProp.prop);
+			DisplayFloatRangeProperty(me, yProp.prop);
+			DisplayFloatRangeProperty(me, zProp.prop);
+		} else {
+			DisplayVec3Field(me, displayName, xProp.prop, yProp.prop, zProp.prop);
+		}
+	}
+	
+	void DisplayVec3Field(MaterialEditor materialEditor, string displayName, CSProperty _xProp, CSProperty _yProp, CSProperty _zProp) {
+		MaterialProperty xProp = _xProp.prop;
+		MaterialProperty yProp = _yProp.prop;
+		MaterialProperty zProp = _zProp.prop;
 		materialEditor.BeginAnimatedCheck(xProp);
 		materialEditor.BeginAnimatedCheck(yProp);
 		materialEditor.BeginAnimatedCheck(zProp);
@@ -514,7 +558,11 @@ public class CancerspaceInspector : ShaderGUI {
 		materialEditor.EndAnimatedCheck();
 	}
 	
-	void DisplayVec4Field(MaterialEditor materialEditor, string displayName, MaterialProperty xProp, MaterialProperty yProp, MaterialProperty zProp, MaterialProperty wProp) {
+	void DisplayVec4Field(MaterialEditor materialEditor, string displayName, CSProperty _xProp, CSProperty _yProp, CSProperty _zProp, CSProperty _wProp) {
+		MaterialProperty xProp = _xProp.prop;
+		MaterialProperty yProp = _yProp.prop;
+		MaterialProperty zProp = _zProp.prop;
+		MaterialProperty wProp = _wProp.prop;
 		materialEditor.BeginAnimatedCheck(xProp);
 		materialEditor.BeginAnimatedCheck(yProp);
 		materialEditor.BeginAnimatedCheck(zProp);
@@ -544,40 +592,40 @@ public class CancerspaceInspector : ShaderGUI {
 		materialEditor.EndAnimatedCheck();
 	}
 	
-	void DisplayIntField(MaterialEditor materialEditor, MaterialProperty property) {
-		EditorGUI.showMixedValue = property.hasMixedValue;
-		int v = (int) property.floatValue;
+	void DisplayIntField(MaterialEditor materialEditor, CSProperty property) {
+		EditorGUI.showMixedValue = property.prop.hasMixedValue;
+		int v = (int) property.prop.floatValue;
 		EditorGUI.BeginChangeCheck();
-		v = EditorGUILayout.IntField(property.displayName, v);
+		v = EditorGUILayout.IntField(property.prop.displayName, v);
 		if (EditorGUI.EndChangeCheck()) {
-			materialEditor.RegisterPropertyChangeUndo(property.displayName);
-			property.floatValue = (float) v;
+			materialEditor.RegisterPropertyChangeUndo(property.prop.displayName);
+			property.prop.floatValue = (float) v;
 		}
 		EditorGUI.showMixedValue = false;
 	}
 	
-	void DisplayIntSlider(MaterialEditor materialEditor, MaterialProperty property, int min, int max) {
-		EditorGUI.showMixedValue = property.hasMixedValue;
-		int v = (int) property.floatValue;
+	void DisplayIntSlider(MaterialEditor materialEditor, CSProperty property, int min, int max) {
+		EditorGUI.showMixedValue = property.prop.hasMixedValue;
+		int v = (int) property.prop.floatValue;
 		EditorGUI.BeginChangeCheck();
-		v = EditorGUILayout.IntSlider(property.displayName, v, min, max);
+		v = EditorGUILayout.IntSlider(property.prop.displayName, v, min, max);
 		if (EditorGUI.EndChangeCheck()) {
-			materialEditor.RegisterPropertyChangeUndo(property.displayName);
-			property.floatValue = (float) v;
+			materialEditor.RegisterPropertyChangeUndo(property.prop.displayName);
+			property.prop.floatValue = (float) v;
 		}
 		EditorGUI.showMixedValue = false;
 	}
 	
-	void ShowColorMaskFlags(MaterialEditor materialEditor, MaterialProperty property) {
-		EditorGUI.showMixedValue = property.hasMixedValue;
-		ColorWriteMask v = (ColorWriteMask) ((int) property.floatValue);
+	void ShowColorMaskFlags(MaterialEditor materialEditor, CSProperty property) {
+		EditorGUI.showMixedValue = property.prop.hasMixedValue;
+		ColorWriteMask v = (ColorWriteMask) ((int) property.prop.floatValue);
 		EditorGUI.BeginChangeCheck();
-		v = (ColorWriteMask) EditorGUILayout.EnumFlagsField(property.displayName, v);
+		v = (ColorWriteMask) EditorGUILayout.EnumFlagsField(property.prop.displayName, v);
 		if (EditorGUI.EndChangeCheck()) {
-			materialEditor.RegisterPropertyChangeUndo(property.displayName);
+			materialEditor.RegisterPropertyChangeUndo(property.prop.displayName);
 			int x = (int) v;
 			if (x == -1) x = 15;
-			property.floatValue = (float) x;
+			property.prop.floatValue = (float) x;
 		}
 		EditorGUI.showMixedValue = false;
 	}
