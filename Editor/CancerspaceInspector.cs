@@ -1,4 +1,4 @@
-﻿using UnityEditor;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using System;
@@ -322,7 +322,7 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayVec3WithSliderMode(me, Styles.hsvAddText, screenHueAdd, screenSaturationAdd, screenValueAdd);
 				DisplayVec3WithSliderMode(me, Styles.hsvMultiplyText, screenHueMultiply, screenSaturationMultiply, screenValueMultiply);
 				DisplayFloatRangeProperty(me, screenInversion);
-				DisplayFloatRangeProperty(me, screenColor);
+				DisplayRegularProperty(me, screenColor);
 				DisplayRegularProperty(me, colorBurningToggle);
 				if (colorBurningToggle.prop.floatValue == 1) {
 					DisplayFloatRangeProperty(me, colorBurningLow);
