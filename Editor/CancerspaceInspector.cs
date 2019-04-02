@@ -23,6 +23,9 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string sliderModeCheckboxText = "Sliders for dummies";
 		public static GUIContent overlayImageText = new GUIContent("Image Overlay", "The overlay image and color.");
 		public static string targetObjectSettingsTitle = "Target Object Settings";
+		public static string targetObjectPositionText = "Position";
+		public static string targetObjectRotationText = "Rotation";
+		public static string targetObjectScaleText = "Scale";
 		public static string falloffSettingsTitle = "Falloff Settings";
 		public static string wobbleSettingsTitle = "Wave Distortion";
 		public static string blurSettingsTitle = "Blur";
@@ -75,6 +78,9 @@ public class CancerspaceInspector : ShaderGUI {
 	protected MaterialProperty stencilWriteMask;
 	
 	protected MaterialProperty puffiness;
+	protected MaterialProperty objectPositionX, objectPositionY, objectPositionZ, objectPositionA;
+	protected MaterialProperty objectRotationX, objectRotationY, objectRotationZ, objectRotationA;
+	protected MaterialProperty objectScaleX, objectScaleY, objectScaleZ, objectScaleA;
 	
 	protected MaterialProperty falloffMaxDistance;
 	
@@ -99,6 +105,8 @@ public class CancerspaceInspector : ShaderGUI {
 	protected MaterialProperty shakeAmplitude;
 	
 	protected MaterialProperty overlayImage;
+	protected MaterialProperty overlayScrollSpeedX;
+	protected MaterialProperty overlayScrollSpeedY;
 	protected MaterialProperty overlayColor;
 	protected MaterialProperty overlayBlendAmount;
 	protected MaterialProperty overlayBlendMode;
@@ -147,6 +155,18 @@ public class CancerspaceInspector : ShaderGUI {
 		stencilWriteMask = FindProperty("_StencilWriteMask", props);
 		
 		puffiness = FindProperty("_Puffiness", props);
+		objectPositionX = FindProperty("_ObjectPositionX", props);
+		objectPositionY = FindProperty("_ObjectPositionY", props);
+		objectPositionZ = FindProperty("_ObjectPositionZ", props);
+		objectPositionA = FindProperty("_ObjectPositionA", props);
+		objectRotationX = FindProperty("_ObjectRotationX", props);
+		objectRotationY = FindProperty("_ObjectRotationY", props);
+		objectRotationZ = FindProperty("_ObjectRotationZ", props);
+		objectRotationA = FindProperty("_ObjectRotationA", props);
+		objectScaleX = FindProperty("_ObjectScaleX", props);
+		objectScaleY = FindProperty("_ObjectScaleY", props);
+		objectScaleZ = FindProperty("_ObjectScaleZ", props);
+		objectScaleA = FindProperty("_ObjectScaleA", props);
 		
 		falloffMaxDistance = FindProperty("_MaxFalloff", props);
 		
@@ -176,6 +196,8 @@ public class CancerspaceInspector : ShaderGUI {
 		shakeAmplitude = FindProperty("_ShakeAmplitude", props);
 		
 		overlayImage = FindProperty("_MainTex", props);
+		overlayScrollSpeedX = FindProperty("_MainTexScrollSpeedX", props);
+		overlayScrollSpeedY = FindProperty("_MainTexScrollSpeedY", props);
 		overlayColor = FindProperty("_OverlayColor", props);
 		overlayBlendAmount = FindProperty("_BlendAmount", props);
 		overlayBlendMode = FindProperty("_BlendMode", props);
@@ -212,7 +234,7 @@ public class CancerspaceInspector : ShaderGUI {
 		screenYMultiplierA = FindProperty("_ScreenYMultiplierA", props);
 		screenXRotationOrigin = FindProperty("_ScreenRotationOriginX", props);
 		screenYRotationOrigin = FindProperty("_ScreenRotationOriginY", props);
-		screenRotationAngle = FindProperty("_RotationAngle", props);
+		screenRotationAngle = FindProperty("_ScreenRotationAngle", props);
 		
 		mirrorReflectionMode = FindProperty("_MirrorMode", props);
 	}
@@ -233,6 +255,22 @@ public class CancerspaceInspector : ShaderGUI {
 		CSCategory[] categories = new CSCategory[] {
 			new CSCategory(Styles.falloffSettingsTitle, defaultStyle, me => {
 				me.ShaderProperty(falloffMaxDistance, falloffMaxDistance.displayName);
+			}),
+			
+			new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {
+				if (sliderMode) {
+					me.ShaderProperty(shakeXAmount, shakeXAmount.displayName);
+					me.ShaderProperty(shakeYAmount, shakeYAmount.displayName);
+					me.ShaderProperty(shakeXSpeed, shakeXSpeed.displayName);
+					me.ShaderProperty(shakeYSpeed, shakeYSpeed.displayName);
+					me.ShaderProperty(shakeAmplitude, shakeAmplitude.displayName);
+				} else {
+					me.FloatProperty(shakeXAmount, shakeXAmount.displayName);
+					me.FloatProperty(shakeYAmount, shakeYAmount.displayName);
+					me.FloatProperty(shakeXSpeed, shakeXSpeed.displayName);
+					me.FloatProperty(shakeYSpeed, shakeYSpeed.displayName);
+					me.FloatProperty(shakeAmplitude, shakeAmplitude.displayName);
+				}
 			}),
 			
 			new CSCategory(Styles.wobbleSettingsTitle, defaultStyle, me => {
@@ -272,27 +310,18 @@ public class CancerspaceInspector : ShaderGUI {
 				}
 			}),
 			
-			new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {
-				if (sliderMode) {
-					me.ShaderProperty(shakeXAmount, shakeXAmount.displayName);
-					me.ShaderProperty(shakeYAmount, shakeYAmount.displayName);
-					me.ShaderProperty(shakeXSpeed, shakeXSpeed.displayName);
-					me.ShaderProperty(shakeYSpeed, shakeYSpeed.displayName);
-					me.ShaderProperty(shakeAmplitude, shakeAmplitude.displayName);
-				} else {
-					me.FloatProperty(shakeXAmount, shakeXAmount.displayName);
-					me.FloatProperty(shakeYAmount, shakeYAmount.displayName);
-					me.FloatProperty(shakeXSpeed, shakeXSpeed.displayName);
-					me.FloatProperty(shakeYSpeed, shakeYSpeed.displayName);
-					me.FloatProperty(shakeAmplitude, shakeAmplitude.displayName);
-				}
-			}),
-			
 			new CSCategory(Styles.overlaySettingsTitle, defaultStyle, me => {
 				BlendModePopup(me);
 				me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage, overlayColor);
 				me.TextureScaleOffsetProperty(overlayImage);
 				me.ShaderProperty(overlayBlendAmount, overlayBlendAmount.displayName);
+				if (sliderMode) {
+					me.ShaderProperty(overlayScrollSpeedX, overlayScrollSpeedX.displayName);
+					me.ShaderProperty(overlayScrollSpeedY, overlayScrollSpeedY.displayName);
+				} else {
+					me.FloatProperty(overlayScrollSpeedX, overlayScrollSpeedX.displayName);
+					me.FloatProperty(overlayScrollSpeedY, overlayScrollSpeedY.displayName);
+				}
 			}),
 			
 			new CSCategory(Styles.screenColorAdjustmentsTitle, defaultStyle, me => {
@@ -349,6 +378,9 @@ public class CancerspaceInspector : ShaderGUI {
 			}),
 			
 			new CSCategory(Styles.targetObjectSettingsTitle, defaultStyle, me => {
+				DisplayVec4Field(me, Styles.targetObjectPositionText, objectPositionX, objectPositionY, objectPositionZ, objectPositionA);
+				DisplayVec4Field(me, Styles.targetObjectRotationText, objectRotationX, objectRotationY, objectRotationZ, objectRotationA);
+				DisplayVec4Field(me, Styles.targetObjectScaleText, objectScaleX, objectScaleY, objectScaleZ, objectScaleA);
 				me.ShaderProperty(puffiness, puffiness.displayName);
 			}),
 			

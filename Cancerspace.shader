@@ -14,6 +14,18 @@
 		_StencilWriteMask ("Write Mask", Int) = 255
 		
 		_Puffiness ("Puffiness", Float) = 0
+		_ObjectPositionX ("Object Position X", Float) = 0
+		_ObjectPositionY ("Object Position Y", Float) = 0
+		_ObjectPositionZ ("Object Position Z", Float) = 0
+		_ObjectPositionA ("Object Position A", Float) = 0
+		_ObjectRotationX ("Object Rotation X", Float) = 0
+		_ObjectRotationY ("Object Rotation Y", Float) = 0
+		_ObjectRotationZ ("Object Rotation Z", Float) = 0
+		_ObjectRotationA ("Object Rotation A", Float) = 0
+		_ObjectScaleX ("Object Scale X", Float) = 1
+		_ObjectScaleY ("Object Scale Y", Float) = 1
+		_ObjectScaleZ ("Object Scale Z", Float) = 1
+		_ObjectScaleA ("Object Scale A", Float) = 1
 		
 		_MaxFalloff ("Falloff Range", Float) = 30
 		
@@ -24,12 +36,12 @@
 		_Zoom ("Zoom", Float) = 1
 		[PowerSlider(2.0)] _Pixelation ("Pixelation", Range(0, 1)) = 0
 		
-		[PowerSlider(2.0)]_XWobbleAmount ("X Amount", Range(0,1)) = 0
-		[PowerSlider(2.0)]_YWobbleAmount ("Y Amount", Range(0,1)) = 0
-		[PowerSlider(2.0)]_XWobbleTiling ("X Tiling", Range(0,3.141592653589793238)) = 0.1
-		[PowerSlider(2.0)]_YWobbleTiling ("Y Tiling", Range(0,3.141592653589793238)) = 0.1
-		[PowerSlider(2.0)]_XWobbleSpeed ("X Speed", Range(0, 100)) = 100
-		[PowerSlider(2.0)]_YWobbleSpeed ("Y Speed", Range(0, 100)) = 100
+		[PowerSlider(2.0)] _XWobbleAmount ("X Amount", Range(0,1)) = 0
+		[PowerSlider(2.0)] _YWobbleAmount ("Y Amount", Range(0,1)) = 0
+		[PowerSlider(2.0)] _XWobbleTiling ("X Tiling", Range(0,3.141592653589793238)) = 0.1
+		[PowerSlider(2.0)] _YWobbleTiling ("Y Tiling", Range(0,3.141592653589793238)) = 0.1
+		[PowerSlider(2.0)] _XWobbleSpeed ("X Speed", Range(0, 100)) = 100
+		[PowerSlider(2.0)] _YWobbleSpeed ("Y Speed", Range(0, 100)) = 100
 		
 		_BumpMap ("Distortion Map (Normal)", 2D) = "bump" {}
 		_DistortionAmplitude ("Amplitude", Range(-1, 1)) = 0.1
@@ -43,6 +55,8 @@
 		_ShakeAmplitude ("Shake Amplitude", Range(0, 2)) = 1
 		
 		_MainTex ("Image Overlay", 2D) = "white" {}
+		_MainTexScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
+		_MainTexScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
 		[HDR] _OverlayColor ("Overlay Color", Color) = (1,1,1,1)
 		_BlendAmount ("Blend Amount", Range(0,1)) = 0.5
 		_BlendMode ("Blend Mode", Int) = 0
@@ -80,7 +94,7 @@
 		_ScreenYMultiplierA ("Screen Y Multiplier (All)", Range(-5, 5)) = 1
 		_ScreenRotationOriginX ("Screen Rotation Origin X (RGB)", Vector) = (0,0,0,.5)
 		_ScreenRotationOriginY ("Screen Rotation Origin Y (RGB)", Vector) = (0,0,0,.5)
-		_RotationAngle ("Screen Rotation Angle (RGB)", Vector) = (0,0,0,0)
+		_ScreenRotationAngle ("Screen Rotation Angle (RGB)", Vector) = (0,0,0,0)
 		
 		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode ("Mirror Reflectance", Int) = 0
 	}
@@ -130,6 +144,11 @@
 			#define _ScreenYMultiplier float4(_ScreenYMultiplierR, _ScreenYMultiplierG, _ScreenYMultiplierB, _ScreenYMultiplierA)
 			#define _HSVAdd float3(_HueAdd, _SaturationAdd, _ValueAdd)
 			#define _HSVMultiply float3(_HueMultiply, _SaturationMultiply, _ValueMultiply)
+			#define _ObjectPosition (float3(_ObjectPositionX, _ObjectPositionY, _ObjectPositionZ) + _ObjectPositionA)
+			#define _ObjectRotation (float3(_ObjectRotationX, _ObjectRotationY, _ObjectRotationZ) + _ObjectRotationA)
+			#define _ObjectScale (float3(_ObjectScaleX, _ObjectScaleY, _ObjectScaleZ) * _ObjectScaleA)
+			#define _MainTexScrollSpeed float2(_MainTexScrollSpeedX, _MainTexScrollSpeedY)
+			#define _BumpMapScrollSpeed float2(_BumpMapScrollSpeedX, _BumpMapScrollSpeedY)
 			
 			#include "UnityCG.cginc"
 
@@ -147,6 +166,7 @@
 
 			sampler2D _MainTex;
 			float4 _MainTex_ST;
+			float _MainTexScrollSpeedX, _MainTexScrollSpeedY;
 			
 			sampler2D _Garb;
 			float4 _Garb_TexelSize;
@@ -179,6 +199,10 @@
 			
 			float _Puffiness;
 			
+			float _ObjectPositionX, _ObjectPositionY, _ObjectPositionZ, _ObjectPositionA;
+			float _ObjectRotationX, _ObjectRotationY, _ObjectRotationZ, _ObjectRotationA;
+			float _ObjectScaleX, _ObjectScaleY, _ObjectScaleZ, _ObjectScaleA;
+			
 			int _MirrorMode;
 			
 			float _ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA;
@@ -188,7 +212,7 @@
 			
 			float4 _ScreenRotationOriginX, _ScreenRotationOriginY;
 			
-			float4 _RotationAngle;
+			float4 _ScreenRotationAngle;
 			
 			float _ScreenBoundaryHandling;
 			
@@ -215,13 +239,19 @@
 			}
 			
 			float3 rgb2hsv(float3 c) {
-				float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+				float4 K = float4(0, -.333, .666, -1);
 				float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
 				float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
 
 				float d = q.x - min(q.w, q.y);
-				float e = 1.0e-10;
-				return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+				float e = 1e-10;
+				return float3(abs(q.z + (q.w - q.y) / (6 * d + e)), d / (q.x + e), q.x);
+			}
+			
+			float2x2 createRotationMatrix(float deg) {
+				float s, c;
+				sincos(deg * (UNITY_PI / 180), s, c);
+				return float2x2(c, s, -s, c);
 			}
 			
 			float2 rotate(float2 uv, float angle) {
@@ -234,9 +264,7 @@
 				//#else
 				float2 offset = float2(0, 0);
 				//#endif
-				float s, c;
-				sincos(angle * UNITY_PI / 180, s, c);
-				return mul(float2x2(c, s, -s, c), uv - offset) + offset;
+				return mul(createRotationMatrix(angle), uv - offset) + offset;
 			}
 			
 			float2 computeScreenSpaceOverlayUV(float3 worldSpacePos) {
@@ -251,7 +279,15 @@
 			
 			v2f vert (appdata v) {
 				v2f o;
+				
+				v.vertex.yz = mul(createRotationMatrix(_ObjectRotation.x), v.vertex.yz);
+				v.vertex.xz = mul(createRotationMatrix(_ObjectRotation.y), v.vertex.xz);
+				v.vertex.xy = mul(createRotationMatrix(_ObjectRotation.z), v.vertex.xy);
+				v.vertex.xyz *= _ObjectScale;
 				v.vertex.xyz += _Puffiness * v.normal;
+				
+				v.vertex.xyz += _ObjectPosition;
+				
 				o.pos = UnityObjectToClipPos(v.vertex);
 				o.posWorld = mul(unity_ObjectToWorld, v.vertex).xyz;
 				o.projPos = ComputeScreenPos(o.pos);
@@ -272,10 +308,10 @@
 				#endif
 				
 				float2 screenSpaceOverlayUV = computeScreenSpaceOverlayUV(i.posWorld);
-				float4 color = tex2D(_MainTex, TRANSFORM_TEX(screenSpaceOverlayUV, _MainTex)) * _OverlayColor;
+				float4 color = tex2D(_MainTex, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _MainTexScrollSpeed), _MainTex)) * _OverlayColor;
 				
 				float2 displace = float2(_XShake, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
-				displace += UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * float2(_BumpMapScrollSpeedX, _BumpMapScrollSpeedY)), _BumpMap))).xy * _DistortionAmplitude;
+				displace += UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _BumpMapScrollSpeed), _BumpMap))).xy * _DistortionAmplitude;
 				displace.x *= VRFix;
 				
 				float2 grabUV = i.projPos.xy / i.projPos.w;
@@ -314,7 +350,7 @@
 						#if defined(USING_STEREO_MATRICES)
 						shift.x *= .5;
 						#endif
-						float rotationAngle = _RotationAngle[j] + _RotationAngle.a;
+						float rotationAngle = _ScreenRotationAngle[j] + _ScreenRotationAngle.a;
 						float2 rotationOrigin = float2(_ScreenRotationOriginX[j] + _ScreenRotationOriginX.a, _ScreenRotationOriginY[j] + _ScreenRotationOriginY.a);
 						
 						float2 uv = multiplier * (rotate(sampleUV + shift - rotationOrigin, rotationAngle) + rotationOrigin);
