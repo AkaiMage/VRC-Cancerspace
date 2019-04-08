@@ -369,28 +369,26 @@
 						color = tex2D(_MainTex, TRANSFORM_TEX(uv, _MainTex)) * _OverlayColor;
 						break;
 					case OVERLAY_FLIPBOOK:
-						{
-							float currentFrame = floor(fmod(_FlipbookStartFrame + frac(_Time.y * _FlipbookFPS / _FlipbookTotalFrames) * _FlipbookTotalFrames, _FlipbookTotalFrames));
-							float2 invCR = 1 / float2(_FlipbookColumns, _FlipbookRows);
-							
-							float2 uv = screenSpaceOverlayUV;
-							if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw * invCR, _MainTex_TexelSize.xy * float2(_FlipbookColumns, _FlipbookRows), uv);
-							
-							uv = TRANSFORM_TEX(uv, _MainTex);
-							switch (_OverlayBoundaryHandling) {
-								case BOUNDARYMODE_CLAMP:
-									uv = saturate(uv);
-									break;
-								case BOUNDARYMODE_REPEAT:
-									uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
-									break;
-							}
-							float row = floor(currentFrame * invCR.x);
-							float2 offset = float2(currentFrame - row * _FlipbookColumns, _FlipbookRows - row - 1);
-							
-							float2 newUVs = frac((uv + offset) * invCR);
-							color = tex2D(_MainTex, newUVs) * _OverlayColor;
+						float currentFrame = floor(fmod(_FlipbookStartFrame + frac(_Time.y * _FlipbookFPS / _FlipbookTotalFrames) * _FlipbookTotalFrames, _FlipbookTotalFrames));
+						float2 invCR = 1 / float2(_FlipbookColumns, _FlipbookRows);
+						
+						float2 uv = screenSpaceOverlayUV;
+						if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw * invCR, _MainTex_TexelSize.xy * float2(_FlipbookColumns, _FlipbookRows), uv);
+						
+						uv = TRANSFORM_TEX(uv, _MainTex);
+						switch (_OverlayBoundaryHandling) {
+							case BOUNDARYMODE_CLAMP:
+								uv = saturate(uv);
+								break;
+							case BOUNDARYMODE_REPEAT:
+								uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
+								break;
 						}
+						float row = floor(currentFrame * invCR.x);
+						float2 offset = float2(currentFrame - row * _FlipbookColumns, _FlipbookRows - row - 1);
+						
+						float2 newUVs = frac((uv + offset) * invCR);
+						color = tex2D(_MainTex, newUVs) * _OverlayColor;
 						break;
 					case OVERLAY_CUBEMAP:
 						color = texCUBE(_OverlayCubemap, i.cubemapSampler) * _OverlayColor;
