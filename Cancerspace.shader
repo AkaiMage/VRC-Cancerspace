@@ -391,7 +391,7 @@
 							float2 offset = float2(currentFrame - row * _FlipbookColumns, _FlipbookRows - row - 1);
 							
 							float2 newUVs = frac((uv + offset) * invCR);
-							color = tex2D(_MainTex, newUVs) * _OverlayColor;
+							color = tex2Dlod(_MainTex, float4(newUVs, 0, 0)) * _OverlayColor;
 						}
 						break;
 					case OVERLAY_CUBEMAP:
