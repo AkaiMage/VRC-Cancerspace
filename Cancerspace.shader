@@ -54,12 +54,29 @@
 		_YShakeSpeed ("Y Shake Speed", Range(0, 300)) = 300
 		_ShakeAmplitude ("Shake Amplitude", Range(0, 2)) = 1
 		
+		
+		[Enum(Image, 0, Flipbook, 1, Cubemap, 2)] _OverlayImageType ("Overlay Type", Int) = 0
+		[Enum(Clamp, 0, Repeat, 1)] _OverlayBoundaryHandling ("Boundary Handling", Int) = 1
+		[Toggle(_)] _PixelatedSampling ("Pixelate", Int) = 0
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		_MainTexScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
 		_MainTexScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
+		[NoScaleOffset] _OverlayCubemap ("Cubemap Overlay", Cube) = "white" {}
 		[HDR] _OverlayColor ("Overlay Color", Color) = (1,1,1,1)
-		_BlendAmount ("Blend Amount", Range(0,1)) = 0.5
+		_FlipbookTotalFrames ("Total Frames", Int) = 0
+		_FlipbookFPS ("Frames per second", Float) = 1
+		_FlipbookStartFrame ("Start Frame", Int) = 0
+		_FlipbookColumns ("Columns", Int) = 20
+		_FlipbookRows ("Rows", Int) = 20
+		_OverlayCubemapRotationX ("Rotation X", Range(0, 360)) = 0
+		_OverlayCubemapRotationY ("Rotation Y", Range(0, 360)) = 0
+		_OverlayCubemapRotationZ ("Rotation Z", Range(0, 360)) = 0
+		_OverlayCubemapSpeedX ("Rotation Speed X", Range(-360, 360)) = 0
+		_OverlayCubemapSpeedY ("Rotation Speed Y", Range(-360, 360)) = 0
+		_OverlayCubemapSpeedZ ("Rotation Speed Z", Range(-360, 360)) = 0
+		_BlendAmount ("Opacity", Range(0,1)) = 0.5
 		_BlendMode ("Blend Mode", Int) = 0
+		
 		
 		_HueAdd ("Hue Add", Range(-1, 1)) = 0
 		_SaturationAdd ("Saturation Add", Range(-1, 1)) = 0
@@ -137,6 +154,10 @@
 			#define BOUNDARYMODE_CLAMP 0
 			#define BOUNDARYMODE_REPEAT 1
 			
+			#define OVERLAY_IMAGE 0
+			#define OVERLAY_FLIPBOOK 1
+			#define OVERLAY_CUBEMAP 2
+			
 			// apparently Unity doesn't animate vector fields properly, so time for some hacky workarounds
 			#define _ScreenXOffset float4(_ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA)
 			#define _ScreenYOffset float4(_ScreenYOffsetR, _ScreenYOffsetG, _ScreenYOffsetB, _ScreenYOffsetA)
@@ -145,7 +166,6 @@
 			#define _HSVAdd float3(_HueAdd, _SaturationAdd, _ValueAdd)
 			#define _HSVMultiply float3(_HueMultiply, _SaturationMultiply, _ValueMultiply)
 			#define _ObjectPosition (float3(_ObjectPositionX, _ObjectPositionY, _ObjectPositionZ) + _ObjectPositionA)
-			#define _ObjectRotation (float3(_ObjectRotationX, _ObjectRotationY, _ObjectRotationZ) + _ObjectRotationA)
 			#define _ObjectScale (float3(_ObjectScaleX, _ObjectScaleY, _ObjectScaleZ) * _ObjectScaleA)
 			#define _MainTexScrollSpeed float2(_MainTexScrollSpeedX, _MainTexScrollSpeedY)
 			#define _BumpMapScrollSpeed float2(_BumpMapScrollSpeedX, _BumpMapScrollSpeedY)
@@ -162,11 +182,27 @@
 				float3 posWorld : TEXCOORD0;
 				float4 projPos : TEXCOORD1;
 				float4 posOrigin : TEXCOORD2;
+				float3 cubemapSampler : TEXCOORD3;
 			};
 
+			int _OverlayImageType;
+			int _OverlayBoundaryHandling;
+			
 			sampler2D _MainTex;
+			float4 _MainTex_TexelSize;
 			float4 _MainTex_ST;
 			float _MainTexScrollSpeedX, _MainTexScrollSpeedY;
+			
+			int _PixelatedSampling;
+			
+			int _FlipbookRows, _FlipbookColumns;
+			int _FlipbookStartFrame;
+			int _FlipbookTotalFrames;
+			float _FlipbookFPS;
+			
+			samplerCUBE _OverlayCubemap;
+			float _OverlayCubemapRotationX, _OverlayCubemapRotationY, _OverlayCubemapRotationZ;
+			float _OverlayCubemapSpeedX, _OverlayCubemapSpeedY, _OverlayCubemapSpeedZ;
 			
 			sampler2D _Garb;
 			float4 _Garb_TexelSize;
@@ -200,7 +236,7 @@
 			float _Puffiness;
 			
 			float _ObjectPositionX, _ObjectPositionY, _ObjectPositionZ, _ObjectPositionA;
-			float _ObjectRotationX, _ObjectRotationY, _ObjectRotationZ, _ObjectRotationA;
+			float _ObjectRotationX, _ObjectRotationY, _ObjectRotationZ;
 			float _ObjectScaleX, _ObjectScaleY, _ObjectScaleZ, _ObjectScaleA;
 			
 			int _MirrorMode;
@@ -277,12 +313,17 @@
 				return unity_CameraProjection[2][0] != 0 || unity_CameraProjection[2][1] != 0;
 			}
 			
+			float2 pixelateSamples(float2 res, float2 invRes, float2 uv) {
+				uv *= res;
+				return (floor(uv) + smoothstep(0, fwidth(uv), frac(uv)) - .5) * invRes;
+			}
+			
 			v2f vert (appdata v) {
 				v2f o;
 				
-				v.vertex.yz = mul(createRotationMatrix(_ObjectRotation.x), v.vertex.yz);
-				v.vertex.xz = mul(createRotationMatrix(_ObjectRotation.y), v.vertex.xz);
-				v.vertex.xy = mul(createRotationMatrix(_ObjectRotation.z), v.vertex.xy);
+				v.vertex.yz = mul(createRotationMatrix(_ObjectRotationX), v.vertex.yz);
+				v.vertex.xz = mul(createRotationMatrix(_ObjectRotationY), v.vertex.xz);
+				v.vertex.xy = mul(createRotationMatrix(_ObjectRotationZ), v.vertex.xy);
 				v.vertex.xyz *= _ObjectScale;
 				v.vertex.xyz += _Puffiness * v.normal;
 				
@@ -293,6 +334,10 @@
 				o.projPos = ComputeScreenPos(o.pos);
 				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
 				o.posOrigin.xy /= o.posOrigin.w;
+				o.cubemapSampler = o.posWorld - _WorldSpaceCameraPos;
+				o.cubemapSampler.yz = mul(createRotationMatrix(_OverlayCubemapRotationX + _Time.y * _OverlayCubemapSpeedX), o.cubemapSampler.yz);
+				o.cubemapSampler.xz = mul(createRotationMatrix(_OverlayCubemapRotationY + _Time.y * _OverlayCubemapSpeedY), o.cubemapSampler.xz);
+				o.cubemapSampler.xy = mul(createRotationMatrix(_OverlayCubemapRotationZ + _Time.y * _OverlayCubemapSpeedZ), o.cubemapSampler.xy);
 				return o;
 			}
 			
@@ -308,20 +353,63 @@
 				#endif
 				
 				float2 screenSpaceOverlayUV = computeScreenSpaceOverlayUV(i.posWorld);
-				float4 color = tex2D(_MainTex, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _MainTexScrollSpeed), _MainTex)) * _OverlayColor;
+				float4 color = 0;
+				switch (_OverlayImageType) {
+					case OVERLAY_IMAGE:
+						float2 uv = screenSpaceOverlayUV;
+						if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw, _MainTex_TexelSize.xy, uv);
+						switch (_OverlayBoundaryHandling) {
+							case BOUNDARYMODE_CLAMP:
+								uv = saturate(uv);
+								break;
+							case BOUNDARYMODE_REPEAT:
+								uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
+								break;
+						}
+						color = tex2D(_MainTex, TRANSFORM_TEX(uv, _MainTex)) * _OverlayColor;
+						break;
+					case OVERLAY_FLIPBOOK:
+						{
+							float currentFrame = floor(fmod(_FlipbookStartFrame + frac(_Time.y * _FlipbookFPS / _FlipbookTotalFrames) * _FlipbookTotalFrames, _FlipbookTotalFrames));
+							float2 invCR = 1 / float2(_FlipbookColumns, _FlipbookRows);
+							
+							float2 uv = screenSpaceOverlayUV;
+							if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw * invCR, _MainTex_TexelSize.xy * float2(_FlipbookColumns, _FlipbookRows), uv);
+							
+							uv = TRANSFORM_TEX(uv, _MainTex);
+							switch (_OverlayBoundaryHandling) {
+								case BOUNDARYMODE_CLAMP:
+									uv = saturate(uv);
+									break;
+								case BOUNDARYMODE_REPEAT:
+									uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
+									break;
+							}
+							float row = floor(currentFrame * invCR.x);
+							float2 offset = float2(currentFrame - row * _FlipbookColumns, _FlipbookRows - row - 1);
+							
+							float2 newUVs = frac((uv + offset) * invCR);
+							color = tex2D(_MainTex, newUVs) * _OverlayColor;
+						}
+						break;
+					case OVERLAY_CUBEMAP:
+						color = texCUBE(_OverlayCubemap, i.cubemapSampler) * _OverlayColor;
+						break;
+				}
+				
 				
 				float2 displace = float2(_XShake, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
 				displace += UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _BumpMapScrollSpeed), _BumpMap))).xy * _DistortionAmplitude;
 				displace.x *= VRFix;
 				
-				float2 grabUV = i.projPos.xy / i.projPos.w;
 				
+				float2 grabUV = i.projPos.xy / i.projPos.w;
 				grabUV -= i.posOrigin.xy;
 				grabUV *= _Zoom;
 				grabUV += i.posOrigin.xy;
 				
-				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
 				
+				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
 				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + wobbleTiling);
 				
 				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
@@ -347,9 +435,7 @@
 					UNITY_UNROLL for (int j = 0; j < 3; ++j) {
 						float2 multiplier = float2(_ScreenXMultiplier[j] * _ScreenXMultiplier.a, _ScreenYMultiplier[j] * _ScreenYMultiplier.a);
 						float2 shift = float2(_ScreenXOffset[j] + _ScreenXOffset.a, _ScreenYOffset[j] + _ScreenYOffset.a);
-						#if defined(USING_STEREO_MATRICES)
-						shift.x *= .5;
-						#endif
+						shift.x *= VRFix;
 						float rotationAngle = _ScreenRotationAngle[j] + _ScreenRotationAngle.a;
 						float2 rotationOrigin = float2(_ScreenRotationOriginX[j] + _ScreenRotationOriginX.a, _ScreenRotationOriginY[j] + _ScreenRotationOriginY.a);
 						

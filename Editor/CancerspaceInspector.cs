@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using System;
@@ -7,6 +7,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 
 public class CancerspaceInspector : ShaderGUI {
+	
 	public enum BlendMode {
 		Multiply,
 		Screen,
@@ -35,6 +36,8 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string distortionMapSettingsTitle = "Distortion Mapping";
 		public static string screenShakeSettingsTitle = "Screen Shake";
 		public static string overlaySettingsTitle = "Overlay";
+		public static string cubeMapRotationText = "Rotation";
+		public static string cubeMapSpeedText = "Rotation Speed";
 		public static string screenColorAdjustmentsTitle = "Screen Color Adjustment";
 		public static string hsvAddText = "HSV Add";
 		public static string hsvMultiplyText = "HSV Multiply";
@@ -122,9 +125,17 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty shakeYSpeed;
 	protected CSProperty shakeAmplitude;
 	
+	protected CSProperty overlayImageType;
+	protected CSProperty overlayPixelate;
+	protected CSProperty overlayBoundary;
 	protected CSProperty overlayImage;
 	protected CSProperty overlayScrollSpeedX;
 	protected CSProperty overlayScrollSpeedY;
+	protected CSProperty overlayFlipbookRows, overlayFlipbookCols;
+	protected CSProperty overlayFlipbookStart, overlayFlipbookFrames, overlayFlipbookFPS;
+	protected CSProperty overlayCubemap;
+	protected CSProperty overlayCubemapRotX, overlayCubemapRotY, overlayCubemapRotZ;
+	protected CSProperty overlayCubemapSpeedX, overlayCubemapSpeedY, overlayCubemapSpeedZ;
 	protected CSProperty overlayColor;
 	protected CSProperty overlayBlendAmount;
 	protected CSProperty overlayBlendMode;
@@ -183,7 +194,6 @@ public class CancerspaceInspector : ShaderGUI {
 		objectRotationX = FindProperty("_ObjectRotationX", props);
 		objectRotationY = FindProperty("_ObjectRotationY", props);
 		objectRotationZ = FindProperty("_ObjectRotationZ", props);
-		objectRotationA = FindProperty("_ObjectRotationA", props);
 		objectScaleX = FindProperty("_ObjectScaleX", props);
 		objectScaleY = FindProperty("_ObjectScaleY", props);
 		objectScaleZ = FindProperty("_ObjectScaleZ", props);
@@ -216,9 +226,24 @@ public class CancerspaceInspector : ShaderGUI {
 		shakeYSpeed = FindProperty("_YShakeSpeed", props);
 		shakeAmplitude = FindProperty("_ShakeAmplitude", props);
 		
+		overlayImageType = FindProperty("_OverlayImageType", props);
 		overlayImage = FindProperty("_MainTex", props);
+		overlayPixelate = FindProperty("_PixelatedSampling", props);
 		overlayScrollSpeedX = FindProperty("_MainTexScrollSpeedX", props);
 		overlayScrollSpeedY = FindProperty("_MainTexScrollSpeedY", props);
+		overlayBoundary = FindProperty("_OverlayBoundaryHandling", props);
+		overlayFlipbookStart = FindProperty("_FlipbookStartFrame", props);
+		overlayFlipbookFrames = FindProperty("_FlipbookTotalFrames", props);
+		overlayFlipbookFPS = FindProperty("_FlipbookFPS", props);
+		overlayFlipbookRows = FindProperty("_FlipbookRows", props);
+		overlayFlipbookCols = FindProperty("_FlipbookColumns", props);
+		overlayCubemap = FindProperty("_OverlayCubemap", props);
+		overlayCubemapRotX = FindProperty("_OverlayCubemapRotationX", props);
+		overlayCubemapRotY = FindProperty("_OverlayCubemapRotationY", props);
+		overlayCubemapRotZ = FindProperty("_OverlayCubemapRotationZ", props);
+		overlayCubemapSpeedX = FindProperty("_OverlayCubemapSpeedX", props);
+		overlayCubemapSpeedY = FindProperty("_OverlayCubemapSpeedY", props);
+		overlayCubemapSpeedZ = FindProperty("_OverlayCubemapSpeedZ", props);
 		overlayColor = FindProperty("_OverlayColor", props);
 		overlayBlendAmount = FindProperty("_BlendAmount", props);
 		overlayBlendMode = FindProperty("_BlendMode", props);
@@ -311,18 +336,48 @@ public class CancerspaceInspector : ShaderGUI {
 			
 			new CSCategory(Styles.overlaySettingsTitle, defaultStyle, me => {
 				BlendModePopup(me);
-				me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
-				me.TextureScaleOffsetProperty(overlayImage.prop);
+				DisplayRegularProperty(me, overlayImageType);
+				switch ((int) overlayImageType.prop.floatValue) {
+					// TODO: replace these with proper enums so there's no magic numbers
+					case 0:
+						DisplayRegularProperty(me, overlayBoundary);
+						DisplayRegularProperty(me, overlayPixelate);
+						me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
+						me.TextureScaleOffsetProperty(overlayImage.prop);
+						if (overlayBoundary.prop.floatValue != 0) {
+							DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
+							DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
+						}
+						break;
+					case 1:
+						DisplayRegularProperty(me, overlayBoundary);
+						DisplayRegularProperty(me, overlayPixelate);
+						me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
+						me.TextureScaleOffsetProperty(overlayImage.prop);
+						if (overlayBoundary.prop.floatValue != 0) {
+							DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
+							DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
+						}
+						DisplayIntField(me, overlayFlipbookFrames);
+						DisplayIntField(me, overlayFlipbookStart);
+						DisplayIntField(me, overlayFlipbookRows);
+						DisplayIntField(me, overlayFlipbookCols);
+						DisplayFloatProperty(me, overlayFlipbookFPS);
+						break;
+					case 2:
+						DisplayRegularProperty(me, overlayCubemap);
+						DisplayVec3WithSliderMode(me, Styles.cubeMapRotationText, overlayCubemapRotX, overlayCubemapRotY, overlayCubemapRotZ);
+						DisplayVec3WithSliderMode(me, Styles.cubeMapSpeedText, overlayCubemapSpeedX, overlayCubemapSpeedY, overlayCubemapSpeedZ);
+						break;
+				}
 				DisplayFloatRangeProperty(me, overlayBlendAmount);
-				DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
-				DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
 			}),
 			
 			new CSCategory(Styles.screenColorAdjustmentsTitle, defaultStyle, me => {
 				DisplayVec3WithSliderMode(me, Styles.hsvAddText, screenHueAdd, screenSaturationAdd, screenValueAdd);
 				DisplayVec3WithSliderMode(me, Styles.hsvMultiplyText, screenHueMultiply, screenSaturationMultiply, screenValueMultiply);
 				DisplayFloatRangeProperty(me, screenInversion);
-				DisplayRegularProperty(me, screenColor);
+				DisplayColorProperty(me, screenColor);
 				DisplayRegularProperty(me, colorBurningToggle);
 				if (colorBurningToggle.prop.floatValue == 1) {
 					DisplayFloatRangeProperty(me, colorBurningLow);
@@ -364,7 +419,7 @@ public class CancerspaceInspector : ShaderGUI {
 			
 			new CSCategory(Styles.targetObjectSettingsTitle, defaultStyle, me => {
 				DisplayVec4Field(me, Styles.targetObjectPositionText, objectPositionX, objectPositionY, objectPositionZ, objectPositionA);
-				DisplayVec4Field(me, Styles.targetObjectRotationText, objectRotationX, objectRotationY, objectRotationZ, objectRotationA);
+				DisplayVec3Field(me, Styles.targetObjectRotationText, objectRotationX, objectRotationY, objectRotationZ);
 				DisplayVec4Field(me, Styles.targetObjectScaleText, objectScaleX, objectScaleY, objectScaleZ, objectScaleA);
 				DisplayRegularProperty(me, puffiness);
 			}),
@@ -479,6 +534,22 @@ public class CancerspaceInspector : ShaderGUI {
 	
 	void DisplayRegularProperty(MaterialEditor me, CSProperty prop) {
 		me.ShaderProperty(prop.prop, prop.prop.displayName);
+	}
+	
+	void DisplayColorProperty(MaterialEditor me, CSProperty prop, bool randomizable = true) {
+		bool randomizationEnabled = propertiesWithRandomization.Contains(prop.prop.name);
+		if (randomizationEnabled && randomizingCurrentPass) {
+			// TODO: make ranges more configurable
+			prop.prop.colorValue = new Color((float) rng.NextDouble(), (float) rng.NextDouble(), (float) rng.NextDouble(), (float) rng.NextDouble());
+		}
+		me.ColorProperty(prop.prop, prop.prop.displayName);
+		if (randomizable && showRandomizerOptions) {
+			bool newState = EditorGUILayout.ToggleLeft(Styles.shouldRandomizeCheckboxText, randomizationEnabled);
+			if (newState != randomizationEnabled) {
+				if (newState) propertiesWithRandomization.Add(prop.prop.name);
+				else propertiesWithRandomization.Remove(prop.prop.name);
+			}
+		}
 	}
 	
 	void DisplayFloatRangeProperty(MaterialEditor me, CSProperty prop, bool randomizable = true) {
