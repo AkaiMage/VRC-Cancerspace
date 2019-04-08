@@ -366,6 +366,7 @@ public class CancerspaceInspector : ShaderGUI {
 						break;
 					case 2:
 						DisplayRegularProperty(me, overlayCubemap);
+						DisplayColorProperty(me, overlayColor);
 						DisplayVec3WithSliderMode(me, Styles.cubeMapRotationText, overlayCubemapRotX, overlayCubemapRotY, overlayCubemapRotZ);
 						DisplayVec3WithSliderMode(me, Styles.cubeMapSpeedText, overlayCubemapSpeedX, overlayCubemapSpeedY, overlayCubemapSpeedZ);
 						break;
