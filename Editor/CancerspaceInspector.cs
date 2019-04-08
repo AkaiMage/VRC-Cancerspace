@@ -473,6 +473,7 @@ public class CancerspaceInspector : ShaderGUI {
 											line = line.Replace(match.Value, "\"" + newShaderPath + "\"");
 										}
 									}
+									line = line.Replace("_Garb", "_Garb" + customRenderQueue);
 									sw.Write(line);
 									sw.WriteLine();
 								}
