@@ -367,7 +367,7 @@
 									uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
 									break;
 							}
-							color = tex2D(_MainTex, TRANSFORM_TEX(uv, _MainTex)) * _OverlayColor;
+							color = tex2D(_MainTex, TRANSFORM_TEX((uv - .5), _MainTex) + .5) * _OverlayColor;
 						}
 						break;
 					case OVERLAY_FLIPBOOK:
@@ -378,7 +378,7 @@
 							float2 uv = screenSpaceOverlayUV;
 							if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw * invCR, _MainTex_TexelSize.xy * float2(_FlipbookColumns, _FlipbookRows), uv);
 							
-							uv = TRANSFORM_TEX(uv, _MainTex);
+							uv = TRANSFORM_TEX((uv - .5), _MainTex) + .5;
 							switch (_OverlayBoundaryHandling) {
 								case BOUNDARYMODE_CLAMP:
 									uv = saturate(uv);
@@ -401,7 +401,7 @@
 				
 				
 				float2 displace = float2(_XShake, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
-				displace += UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _BumpMapScrollSpeed), _BumpMap))).xy * _DistortionAmplitude;
+				displace += UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _BumpMapScrollSpeed - .5), _BumpMap) + .5)).xy * _DistortionAmplitude;
 				displace.x *= VRFix;
 				
 				
