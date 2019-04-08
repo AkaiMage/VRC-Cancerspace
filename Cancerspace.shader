@@ -372,7 +372,7 @@
 						break;
 					case OVERLAY_FLIPBOOK:
 						{
-							float currentFrame = floor(fmod(_FlipbookStartFrame + _Time.y * _FlipbookFPS / _FlipbookTotalFrames * _FlipbookTotalFrames, _FlipbookTotalFrames));
+							float currentFrame = floor(fmod(_FlipbookStartFrame + _Time.y * _FlipbookFPS, _FlipbookTotalFrames));
 							float2 invCR = 1 / float2(_FlipbookColumns, _FlipbookRows);
 							
 							float2 uv = screenSpaceOverlayUV;
