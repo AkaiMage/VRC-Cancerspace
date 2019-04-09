@@ -43,7 +43,12 @@
 		[PowerSlider(2.0)] _XWobbleSpeed ("X Speed", Range(0, 100)) = 100
 		[PowerSlider(2.0)] _YWobbleSpeed ("Y Speed", Range(0, 100)) = 100
 		
+		[Enum(Normal, 0, Melt, 1)] _DistortionType ("Distortion Type", Int) = 0
+		[Enum(Screen, 0, Overlay, 1)] _DistortionTarget ("Target", Int) = 0
 		_BumpMap ("Distortion Map (Normal)", 2D) = "bump" {}
+		_MeltMap ("Melt Map", 2D) = "white" {}
+		_MeltActivationScale ("Activation Time Scale", Range(0, 3)) = 1
+		_MeltController ("Controller", Range(0, 3)) = 0
 		_DistortionAmplitude ("Amplitude", Range(-1, 1)) = 0.1
 		_BumpMapScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
 		_BumpMapScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
@@ -56,7 +61,7 @@
 		
 		
 		[Enum(Image, 0, Flipbook, 1, Cubemap, 2)] _OverlayImageType ("Overlay Type", Int) = 0
-		[Enum(Clamp, 0, Repeat, 1)] _OverlayBoundaryHandling ("Boundary Handling", Int) = 1
+		[Enum(Clamp, 0, Repeat, 1, Screen, 2)] _OverlayBoundaryHandling ("Boundary Handling", Int) = 1
 		[Toggle(_)] _PixelatedSampling ("Pixelate", Int) = 0
 		_MainTex ("Image Overlay", 2D) = "white" {}
 		_MainTexScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
@@ -92,7 +97,7 @@
 		_BurnLow ("Color Burn Low", Range(-5, 5)) = 0
 		_BurnHigh ("Color Burn High", Range(-5, 5)) = 1
 		
-		[Enum(Clamp, 0, Repeat, 1)] _ScreenBoundaryHandling ("Screen Boundary Handling", Float) = 0
+		[Enum(Clamp, 0, Repeat, 1, Overlay, 2)] _ScreenBoundaryHandling ("Screen Boundary Handling", Int) = 0
 		_ScreenXOffsetR ("Screen X Offset (Red)", Range(-1, 1)) = 0
 		_ScreenXOffsetG ("Screen X Offset (Green)", Range(-1, 1)) = 0
 		_ScreenXOffsetB ("Screen X Offset (Blue)", Range(-1, 1)) = 0
@@ -158,10 +163,18 @@
 			
 			#define BOUNDARYMODE_CLAMP 0
 			#define BOUNDARYMODE_REPEAT 1
+			#define BOUNDARYMODE_OVERLAY 2
+			#define BOUNDARYMODE_SCREEN 2
 			
 			#define OVERLAY_IMAGE 0
 			#define OVERLAY_FLIPBOOK 1
 			#define OVERLAY_CUBEMAP 2
+			
+			#define DISTORT_NORMAL 0
+			#define DISTORT_MELT 1
+			
+			#define DISTORT_TARGET_SCREEN 0
+			#define DISTORT_TARGET_OVERLAY 1
 			
 			// apparently Unity doesn't animate vector fields properly, so time for some hacky workarounds
 			#define _ScreenXOffset float4(_ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA)
@@ -255,7 +268,7 @@
 			
 			float4 _ScreenRotationAngle;
 			
-			float _ScreenBoundaryHandling;
+			int _ScreenBoundaryHandling;
 			
 			// blurring method is based on https://www.shadertoy.com/view/XsVBDR
 			
@@ -263,10 +276,14 @@
 			float _AnimatedSampling;
 			float _BlurRadius;
 			
+			int _DistortionType, _DistortionTarget;
 			sampler2D _BumpMap;
 			float4 _BumpMap_ST;
 			float _DistortionAmplitude;
 			float _BumpMapScrollSpeedX, _BumpMapScrollSpeedY;
+			sampler2D _MeltMap;
+			float4 _MeltMap_ST;
+			float _MeltController, _MeltActivationScale;
 			
 			float2 hash23(float3 p) {
 				if (_AnimatedSampling) p.z += frac(_Time.z) * 4;
@@ -401,12 +418,35 @@
 				#endif
 				
 				float2 screenSpaceOverlayUV = computeScreenSpaceOverlayUV(i.posWorld);
+				
+				float2 distortion = 0;
+				
+				switch (_DistortionType) {
+					case DISTORT_NORMAL:
+						distortion = UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _BumpMapScrollSpeed - .5), _BumpMap) + .5)).xy * _DistortionAmplitude;
+						break;
+					case DISTORT_MELT:
+						{
+							float4 meltVal = tex2D(_MeltMap, TRANSFORM_TEX((screenSpaceOverlayUV - .5), _MeltMap) + .5);
+							float2 motionVector = normalize(2 * meltVal.rg - 1);
+							float activationTime = meltVal.b * _MeltActivationScale;
+							float speed = meltVal.a * _DistortionAmplitude;
+							if (_MeltController >= activationTime) {
+								distortion = ((_MeltController - activationTime) * speed) * motionVector;
+							}
+						}
+						break;
+				}
+				
 				float4 color = 0;
 				switch (_OverlayImageType) {
 					case OVERLAY_IMAGE:
 						{
 							float2 uv = screenSpaceOverlayUV;
 							if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw, _MainTex_TexelSize.xy, uv);
+							
+							if (_DistortionTarget == DISTORT_TARGET_OVERLAY) uv += distortion;
+							
 							switch (_OverlayBoundaryHandling) {
 								case BOUNDARYMODE_CLAMP:
 									uv = saturate(uv);
@@ -415,7 +455,12 @@
 									uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
 									break;
 							}
-							color = tex2D(_MainTex, TRANSFORM_TEX((uv - .5), _MainTex) + .5) * _OverlayColor;
+							uv = TRANSFORM_TEX((uv - .5), _MainTex) + .5;
+							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
+								color = 0;
+							} else {
+								color = tex2D(_MainTex, uv) * _OverlayColor;
+							}
 						}
 						break;
 					case OVERLAY_FLIPBOOK:
@@ -426,6 +471,8 @@
 							float2 uv = screenSpaceOverlayUV;
 							if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw * invCR, _MainTex_TexelSize.xy * float2(_FlipbookColumns, _FlipbookRows), uv);
 							
+							if (_DistortionTarget == DISTORT_TARGET_OVERLAY) uv += distortion;
+							
 							uv = TRANSFORM_TEX((uv - .5), _MainTex) + .5;
 							switch (_OverlayBoundaryHandling) {
 								case BOUNDARYMODE_CLAMP:
@@ -435,11 +482,17 @@
 									uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
 									break;
 							}
+							
 							float row = floor(currentFrame * invCR.x);
 							float2 offset = float2(currentFrame - row * _FlipbookColumns, _FlipbookRows - row - 1);
 							
 							float2 newUVs = frac((uv + offset) * invCR);
-							color = tex2Dlod(_MainTex, float4(newUVs, 0, 0)) * _OverlayColor;
+							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(newUVs.x) != newUVs.x || saturate(newUVs.y) != newUVs.y)) {
+								color = 0;
+							} else {
+								color = tex2Dlod(_MainTex, float4(newUVs, 0, 0)) * _OverlayColor;
+							}
+							
 						}
 						break;
 					case OVERLAY_CUBEMAP:
@@ -449,20 +502,20 @@
 				
 				
 				float2 displace = float2(_XShake, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
-				displace += UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _BumpMapScrollSpeed - .5), _BumpMap) + .5)).xy * _DistortionAmplitude;
-				displace.x *= VRFix;
 				
+				if (_DistortionTarget == DISTORT_TARGET_SCREEN) displace += distortion;
 				
 				float2 grabUV = i.projPos.xy / i.projPos.w;
 				grabUV -= i.posOrigin.xy;
 				grabUV *= _Zoom;
+				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
 				grabUV += i.posOrigin.xy;
 				
 				
 				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
 				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + wobbleTiling);
 				
-				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
+				
 				
 				displace.x *= VRFix;
 				
@@ -504,7 +557,11 @@
 								break;
 						}
 						
-						col[j] = tex2D(_Garb, uv)[j];
+						if (_ScreenBoundaryHandling == BOUNDARYMODE_OVERLAY && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
+							col[j] = color[j];
+						} else {
+							col[j] = tex2D(_Garb, uv)[j];
+						}
 					}
 					
 					grabCol = lerp(grabCol, col, 1 / (float) (blurPass + 1));

@@ -166,7 +166,12 @@ public class CancerspaceInspector : ShaderGUI {
 	
 	protected CSProperty mirrorReflectionMode;
 	
+	protected CSProperty distortionType;
+	protected CSProperty distortionTarget;
 	protected CSProperty distortionMap;
+	protected CSProperty meltMap;
+	protected CSProperty meltTimeScale;
+	protected CSProperty meltController;
 	protected CSProperty distortionAmplitude;
 	protected CSProperty distortionScrollSpeedX;
 	protected CSProperty distortionScrollSpeedY;
@@ -220,10 +225,15 @@ public class CancerspaceInspector : ShaderGUI {
 		wobbleXSpeed = FindProperty("_XWobbleSpeed", props);
 		wobbleYSpeed = FindProperty("_YWobbleSpeed", props);
 		
+		distortionType = FindProperty("_DistortionType", props);
+		distortionTarget = FindProperty("_DistortionTarget", props);
 		distortionMap = FindProperty("_BumpMap", props);
 		distortionAmplitude = FindProperty("_DistortionAmplitude", props);
 		distortionScrollSpeedX = FindProperty("_BumpMapScrollSpeedX", props);
 		distortionScrollSpeedY = FindProperty("_BumpMapScrollSpeedY", props);
+		meltMap = FindProperty("_MeltMap", props);
+		meltController = FindProperty("_MeltController", props);
+		meltTimeScale = FindProperty("_MeltActivationScale", props);
 
 		shakeXAmount = FindProperty("_XShake", props);
 		shakeYAmount = FindProperty("_YShake", props);
@@ -333,10 +343,23 @@ public class CancerspaceInspector : ShaderGUI {
 			}),
 			
 			new CSCategory(Styles.distortionMapSettingsTitle, defaultStyle, me => {
-				DisplayRegularProperty(me, distortionMap);
-				DisplayFloatWithSliderMode(me, distortionAmplitude);
-				DisplayFloatWithSliderMode(me, distortionScrollSpeedX);
-				DisplayFloatWithSliderMode(me, distortionScrollSpeedY);
+				DisplayRegularProperty(me, distortionType);
+				DisplayRegularProperty(me, distortionTarget);
+				switch ((int) distortionType.prop.floatValue) {
+					case 0:
+						DisplayRegularProperty(me, distortionMap);
+						DisplayFloatWithSliderMode(me, distortionAmplitude);
+						DisplayFloatWithSliderMode(me, distortionScrollSpeedX);
+						DisplayFloatWithSliderMode(me, distortionScrollSpeedY);
+						break;
+					case 1:
+						DisplayRegularProperty(me, meltMap);
+						DisplayFloatWithSliderMode(me, distortionAmplitude);
+						DisplayFloatWithSliderMode(me, meltController);
+						DisplayFloatWithSliderMode(me, meltTimeScale);
+						break;
+				}
+				
 			}),
 			
 			new CSCategory(Styles.overlaySettingsTitle, defaultStyle, me => {
