@@ -44,7 +44,7 @@
 		[PowerSlider(2.0)] _YWobbleSpeed ("Y Speed", Range(0, 100)) = 100
 		
 		[Enum(Normal, 0, Melt, 1)] _DistortionType ("Distortion Type", Int) = 0
-		[Enum(Screen, 0, Overlay, 1)] _DistortionTarget ("Target", Int) = 0
+		[Enum(Screen, 0, Overlay, 1, Both, 2)] _DistortionTarget ("Target", Int) = 0
 		_BumpMap ("Distortion Map (Normal)", 2D) = "bump" {}
 		_MeltMap ("Melt Map", 2D) = "white" {}
 		_MeltActivationScale ("Activation Time Scale", Range(0, 3)) = 1
@@ -175,6 +175,7 @@
 			
 			#define DISTORT_TARGET_SCREEN 0
 			#define DISTORT_TARGET_OVERLAY 1
+			#define DISTORT_TARGET_BOTH 2
 			
 			// apparently Unity doesn't animate vector fields properly, so time for some hacky workarounds
 			#define _ScreenXOffset float4(_ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA)
@@ -445,7 +446,7 @@
 							float2 uv = screenSpaceOverlayUV;
 							if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw, _MainTex_TexelSize.xy, uv);
 							
-							if (_DistortionTarget == DISTORT_TARGET_OVERLAY) uv += distortion;
+							if (_DistortionTarget == DISTORT_TARGET_OVERLAY || _DistortionTarget == DISTORT_TARGET_BOTH) uv += distortion;
 							
 							switch (_OverlayBoundaryHandling) {
 								case BOUNDARYMODE_CLAMP:
@@ -471,7 +472,7 @@
 							float2 uv = screenSpaceOverlayUV;
 							if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw * invCR, _MainTex_TexelSize.xy * float2(_FlipbookColumns, _FlipbookRows), uv);
 							
-							if (_DistortionTarget == DISTORT_TARGET_OVERLAY) uv += distortion;
+							if (_DistortionTarget == DISTORT_TARGET_OVERLAY || _DistortionTarget == DISTORT_TARGET_BOTH) uv += distortion;
 							
 							uv = TRANSFORM_TEX((uv - .5), _MainTex) + .5;
 							switch (_OverlayBoundaryHandling) {
@@ -503,7 +504,7 @@
 				
 				float2 displace = float2(_XShake, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
 				
-				if (_DistortionTarget == DISTORT_TARGET_SCREEN) displace += distortion;
+				if (_DistortionTarget == DISTORT_TARGET_SCREEN || _DistortionTarget == DISTORT_TARGET_BOTH) displace += distortion;
 				
 				float2 grabUV = i.projPos.xy / i.projPos.w;
 				grabUV -= i.posOrigin.xy;
