@@ -18,7 +18,12 @@ public class CancerspaceInspector : ShaderGUI {
 		Divide,
 		Darken,
 		Lighten,
-		Lerp
+		Normal,
+		ColorDodge,
+		ColorBurn,
+		HardLight,
+		SoftLight,
+		Exclusion
 	}
 	
 	public static class Styles {

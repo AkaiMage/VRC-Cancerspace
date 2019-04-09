@@ -149,7 +149,12 @@
 			#define BLENDMODE_DIVIDE 6
 			#define BLENDMODE_DARKEN 7
 			#define BLENDMODE_LIGHTEN 8
-			#define BLENDMODE_LERP 9
+			#define BLENDMODE_NORMAL 9
+			#define BLENDMODE_COLORDODGE 10
+			#define BLENDMODE_COLORBURN 11
+			#define BLENDMODE_HARDLIGHT 12
+			#define BLENDMODE_SOFTLIGHT 13
+			#define BLENDMODE_EXCLUSION 14
 			
 			#define BOUNDARYMODE_CLAMP 0
 			#define BOUNDARYMODE_REPEAT 1
@@ -318,6 +323,49 @@
 				return (floor(uv) + smoothstep(0, fwidth(uv), frac(uv)) - .5) * invRes;
 			}
 			
+			float3 colorDodge(float3 b, float3 s) {
+				float3 res;
+				UNITY_UNROLL for (int i = 0; i < 3; ++i) {
+					if (b[i] == 0) res[i] = 0;
+					else if (s[i] == 1) res[i] = 1;
+					else res[i] = min(1, b[i] / (1 - s[i]));
+				}
+				return res;
+			}
+			
+			float3 colorBurn(float3 b, float3 s) {
+				float3 res;
+				UNITY_UNROLL for (int i = 0; i < 3; ++i) {
+					if (b[i] == 1) res[i] = 1;
+					else if (s[i] == 0) res[i] = 0;
+					else res[i] = 1 - min(1, (1 - b[i]) / s[i]);
+				}
+				return res;
+			}
+			
+			float3 hardLight(float3 b, float3 s) {
+				float3 res;
+				UNITY_UNROLL for (int i = 0; i < 3; ++i) {
+					if (s[i] <= .5) res[i] = 2 * s[i] * b[i];
+					else res[i] = 1 - 2 * (1 - b[i]) * (1 - s[i]);
+				}
+				return res;
+			}
+			
+			float3 softLight(float3 b, float3 s) {
+				float3 res;
+				UNITY_UNROLL for (int i = 0; i < 3; ++i) {
+					if (s[i] <= .5) res[i] = (1 - (1 - 2 * s[i]) * (1 - b[i])) * b[i];
+					else {
+						float d;
+						if (b[i] <= .25) d = ((16 * b[i] - 12) * b[i] + 4) * b[i];
+						else d = sqrt(b[i]);
+						res[i] = b[i] + (2 * s[i] - 1) * (d - b[i]);
+					}
+				}
+				return res;
+			}
+			
 			v2f vert (appdata v) {
 				v2f o;
 				
@@ -483,10 +531,7 @@
 						blendedColor = 1 - (1 - finalScreenColor) * (1 - color.rgb);
 						break;
 					case BLENDMODE_OVERLAY:
-						UNITY_UNROLL for (int k = 0; k < 3; ++k) {
-							if (finalScreenColor[k] < .5) blendedColor[k] = 2 * finalScreenColor[k] * color[k];
-							else blendedColor[k] = 1 - 2 * (1 - finalScreenColor[k]) * (1 - color[k]);
-						}
+						blendedColor = hardLight(color.rgb, finalScreenColor);
 						break;
 					case BLENDMODE_ADD:
 						blendedColor = saturate(finalScreenColor + color.rgb);
@@ -506,8 +551,23 @@
 					case BLENDMODE_LIGHTEN:
 						blendedColor = max(finalScreenColor, color.rgb);
 						break;
-					case BLENDMODE_LERP:
+					case BLENDMODE_NORMAL:
 						blendedColor = color.rgb;
+						break;
+					case BLENDMODE_COLORDODGE:
+						blendedColor = colorDodge(finalScreenColor, color.rgb);
+						break;
+					case BLENDMODE_COLORBURN:
+						blendedColor = colorBurn(finalScreenColor, color.rgb);
+						break;
+					case BLENDMODE_HARDLIGHT:
+						blendedColor = hardLight(finalScreenColor, color.rgb);
+						break;
+					case BLENDMODE_SOFTLIGHT:
+						blendedColor = softLight(finalScreenColor, color.rgb);
+						break;
+					case BLENDMODE_EXCLUSION:
+						blendedColor = finalScreenColor + color.rgb - 2 * finalScreenColor * color.rgb;
 						break;
 				}
 				
