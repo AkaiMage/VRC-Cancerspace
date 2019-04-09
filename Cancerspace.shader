@@ -33,7 +33,7 @@
 		_BlurSampling ("Blur Sampling", Range(1, 5)) = 1
 		[Toggle(_)] _AnimatedSampling ("Animated Sampling", Float) = 1
 		
-		_Zoom ("Zoom", Float) = 1
+		_Zoom ("Zoom", Range(-10, 10)) = 1
 		[PowerSlider(2.0)] _Pixelation ("Pixelation", Range(0, 1)) = 0
 		
 		[PowerSlider(2.0)] _XWobbleAmount ("X Amount", Range(0,1)) = 0

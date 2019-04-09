@@ -416,7 +416,7 @@ public class CancerspaceInspector : ShaderGUI {
 			
 			new CSCategory(Styles.screenTransformTitle, defaultStyle, me => {
 				DisplayRegularProperty(me, screenBoundaryHandling);
-				DisplayRegularProperty(me, zoomAmount);
+				DisplayFloatWithSliderMode(me, zoomAmount);
 				DisplayRegularProperty(me, pixelationAmount);
 				if (sliderMode) {
 					DisplayFloatRangeProperty(me, screenXOffsetA);
