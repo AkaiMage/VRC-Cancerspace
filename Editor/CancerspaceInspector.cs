@@ -51,6 +51,9 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string screenYOffsetText = "Screen Y Offset (RGB)";
 		public static string screenXMultiplierText = "Screen X Multiplier (RGB)";
 		public static string screenYMultiplierText = "Screen Y Multiplier (RGB)";
+		public static string screenXRotationOriginText = "Screen Rotation Origin X (RGB)";
+		public static string screenYRotationOriginText = "Screen Rotation Origin Y (RGB)";
+		public static string screenRotationAngleText = "Screen Rotation Angle (RGB)";
 		public static string stencilTitle = "Stencil Testing";
 		public static string miscSettingsTitle = "Misc";
 		public static string renderQueueExportTitle = "Custom Render Queue Exporter";
@@ -155,14 +158,15 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty colorBurningLow;
 	protected CSProperty colorBurningHigh;
 	
+	protected CSProperty screenReprojection;
 	protected CSProperty screenBoundaryHandling;
 	protected CSProperty screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA;
 	protected CSProperty screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA;
 	protected CSProperty screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA;
 	protected CSProperty screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA;
-	protected CSProperty screenXRotationOrigin;
-	protected CSProperty screenYRotationOrigin;
-	protected CSProperty screenRotationAngle;
+	protected CSProperty screenXRotationOriginR, screenXRotationOriginG, screenXRotationOriginB, screenXRotationOriginA;
+	protected CSProperty screenYRotationOriginR, screenYRotationOriginG, screenYRotationOriginB, screenYRotationOriginA;
+	protected CSProperty screenRotationAngleR, screenRotationAngleG, screenRotationAngleB, screenRotationAngleA;
 	
 	protected CSProperty mirrorReflectionMode;
 	
@@ -276,6 +280,7 @@ public class CancerspaceInspector : ShaderGUI {
 		colorBurningLow = FindProperty("_BurnLow", props);
 		colorBurningHigh = FindProperty("_BurnHigh", props);
 		
+		screenReprojection = FindProperty("_ScreenReprojection", props);
 		screenBoundaryHandling = FindProperty("_ScreenBoundaryHandling", props);
 		screenXOffsetR = FindProperty("_ScreenXOffsetR", props);
 		screenXOffsetG = FindProperty("_ScreenXOffsetG", props);
@@ -293,9 +298,18 @@ public class CancerspaceInspector : ShaderGUI {
 		screenYMultiplierG = FindProperty("_ScreenYMultiplierG", props);
 		screenYMultiplierB = FindProperty("_ScreenYMultiplierB", props);
 		screenYMultiplierA = FindProperty("_ScreenYMultiplierA", props);
-		screenXRotationOrigin = FindProperty("_ScreenRotationOriginX", props);
-		screenYRotationOrigin = FindProperty("_ScreenRotationOriginY", props);
-		screenRotationAngle = FindProperty("_ScreenRotationAngle", props);
+		screenXRotationOriginR = FindProperty("_ScreenRotationOriginXR", props);
+		screenXRotationOriginG = FindProperty("_ScreenRotationOriginXG", props);
+		screenXRotationOriginB = FindProperty("_ScreenRotationOriginXB", props);
+		screenXRotationOriginA = FindProperty("_ScreenRotationOriginXA", props);
+		screenYRotationOriginR = FindProperty("_ScreenRotationOriginYR", props);
+		screenYRotationOriginG = FindProperty("_ScreenRotationOriginYG", props);
+		screenYRotationOriginB = FindProperty("_ScreenRotationOriginYB", props);
+		screenYRotationOriginA = FindProperty("_ScreenRotationOriginYA", props);
+		screenRotationAngleR = FindProperty("_ScreenRotationAngleR", props);
+		screenRotationAngleG = FindProperty("_ScreenRotationAngleG", props);
+		screenRotationAngleB = FindProperty("_ScreenRotationAngleB", props);
+		screenRotationAngleA = FindProperty("_ScreenRotationAngleA", props);
 		
 		mirrorReflectionMode = FindProperty("_MirrorMode", props);
 	}
@@ -416,6 +430,7 @@ public class CancerspaceInspector : ShaderGUI {
 			
 			new CSCategory(Styles.screenTransformTitle, defaultStyle, me => {
 				DisplayRegularProperty(me, screenBoundaryHandling);
+				DisplayRegularProperty(me, screenReprojection);
 				DisplayFloatWithSliderMode(me, zoomAmount);
 				DisplayRegularProperty(me, pixelationAmount);
 				if (sliderMode) {
@@ -441,9 +456,24 @@ public class CancerspaceInspector : ShaderGUI {
 					DisplayVec4Field(me, Styles.screenXMultiplierText, screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA);
 					DisplayVec4Field(me, Styles.screenYMultiplierText, screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA);
 				}
-				//me.ShaderProperty(screenXRotationOrigin, screenXRotationOrigin.displayName);
-				//me.ShaderProperty(screenYRotationOrigin, screenYRotationOrigin.displayName);
-				//me.ShaderProperty(screenRotationAngle, screenRotationAngle.displayName);
+				if (screenReprojection.prop.floatValue > .5) {
+					if (sliderMode) {
+						DisplayFloatRangeProperty(me, screenXRotationOriginA);
+						DisplayFloatRangeProperty(me, screenYRotationOriginA);
+						DisplayFloatRangeProperty(me, screenRotationAngleA);DisplayFloatRangeProperty(me, screenXRotationOriginR);
+						DisplayFloatRangeProperty(me, screenYRotationOriginR);
+						DisplayFloatRangeProperty(me, screenRotationAngleR);DisplayFloatRangeProperty(me, screenXRotationOriginG);
+						DisplayFloatRangeProperty(me, screenYRotationOriginG);
+						DisplayFloatRangeProperty(me, screenRotationAngleG);DisplayFloatRangeProperty(me, screenXRotationOriginB);
+						DisplayFloatRangeProperty(me, screenYRotationOriginB);
+						DisplayFloatRangeProperty(me, screenRotationAngleB);
+					} else {
+						DisplayVec4Field(me, Styles.screenXRotationOriginText, screenXRotationOriginR, screenXRotationOriginG, screenXRotationOriginB, screenXRotationOriginA);
+						DisplayVec4Field(me, Styles.screenYRotationOriginText, screenYRotationOriginR, screenYRotationOriginG, screenYRotationOriginB, screenYRotationOriginA);
+						DisplayVec4Field(me, Styles.screenRotationAngleText, screenRotationAngleR, screenRotationAngleG, screenRotationAngleB, screenRotationAngleA);
+					}
+				}
+				
 			}),
 			
 			new CSCategory(Styles.targetObjectSettingsTitle, defaultStyle, me => {
