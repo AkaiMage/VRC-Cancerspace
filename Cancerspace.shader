@@ -335,7 +335,13 @@
 			float2 computeScreenSpaceOverlayUV(float3 worldSpacePos) {
 				float3 viewSpace = mul(UNITY_MATRIX_V, worldSpacePos - _WorldSpaceCameraPos);
 				float2 adjusted = viewSpace.xy / viewSpace.z;
-				return .5 * (1 - adjusted * float2(_ScreenParams.z / _ScreenParams.w, 1));
+				float width = _Garb_TexelSize.z;
+				#if defined(USING_STEREO_MATRICES)
+				width *= .5;
+				#endif
+				float height = _Garb_TexelSize.w;
+				
+				return .5 * (1 - adjusted * float2((height*(width+1))/(width*(height+1)), 1));
 			}
 			
 			bool isInMirror() {
