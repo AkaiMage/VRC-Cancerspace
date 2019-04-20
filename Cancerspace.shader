@@ -52,13 +52,13 @@
 		_DistortionAmplitude ("Amplitude", Range(-1, 1)) = 0.1
 		_BumpMapScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
 		_BumpMapScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
+		_DistortionMask("Distortion Mask", 2D) = "white" {}
 		
 		[PowerSlider(2.0)]_XShake ("X Shake", Range(0, 1)) = 0
 		[PowerSlider(2.0)]_YShake ("Y Shake", Range(0, 1)) = 0
 		_XShakeSpeed ("X Shake Speed", Range(0, 300)) = 200
 		_YShakeSpeed ("Y Shake Speed", Range(0, 300)) = 300
 		_ShakeAmplitude ("Shake Amplitude", Range(0, 2)) = 1
-		
 		
 		[Enum(Image, 0, Flipbook, 1, Cubemap, 2)] _OverlayImageType ("Overlay Type", Int) = 0
 		[Enum(Clamp, 0, Repeat, 1, Screen, 2)] _OverlayBoundaryHandling ("Boundary Handling", Int) = 1
@@ -300,6 +300,8 @@
 			sampler2D _MeltMap;
 			float4 _MeltMap_ST;
 			float _MeltController, _MeltActivationScale;
+			sampler2D _DistortionMask;
+			float4 _DistortionMask_ST;
 			
 			float2 hash23(float3 p) {
 				if (_AnimatedSampling) p.z += frac(_Time.z) * 4;
@@ -438,11 +440,11 @@
 				
 				switch (_DistortionType) {
 					case DISTORT_NORMAL:
-						distortion = UnpackNormal(tex2D(_BumpMap, TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _BumpMapScrollSpeed - .5), _BumpMap) + .5)).xy * _DistortionAmplitude;
+						distortion = UnpackNormal(tex2Dlod(_BumpMap, float4(TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _BumpMapScrollSpeed - .5), _BumpMap) + .5, 0, 0))).xy * _DistortionAmplitude;
 						break;
 					case DISTORT_MELT:
 						{
-							float4 meltVal = tex2D(_MeltMap, TRANSFORM_TEX((screenSpaceOverlayUV - .5), _MeltMap) + .5);
+							float4 meltVal = tex2Dlod(_MeltMap, float4(TRANSFORM_TEX((screenSpaceOverlayUV - .5), _MeltMap) + .5, 0, 0));
 							float2 motionVector = normalize(2 * meltVal.rg - 1);
 							float activationTime = meltVal.b * _MeltActivationScale;
 							float speed = meltVal.a * _DistortionAmplitude;
@@ -452,6 +454,9 @@
 						}
 						break;
 				}
+				
+				distortion *= tex2Dlod(_DistortionMask, float4((TRANSFORM_TEX((screenSpaceOverlayUV - .5), _DistortionMask) + .5), 0, 0)).r;
+				
 				
 				float4 color = 0;
 				switch (_OverlayImageType) {
@@ -474,7 +479,7 @@
 							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
 								color = 0;
 							} else {
-								color = tex2D(_MainTex, uv) * _OverlayColor;
+								color = tex2Dlod(_MainTex, float4(uv, 0, 0)) * _OverlayColor;
 							}
 						}
 						break;

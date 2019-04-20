@@ -179,6 +179,7 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty distortionAmplitude;
 	protected CSProperty distortionScrollSpeedX;
 	protected CSProperty distortionScrollSpeedY;
+	protected CSProperty distortionMask;
 	
 	protected int customRenderQueue;
 	protected bool initialized;
@@ -238,6 +239,7 @@ public class CancerspaceInspector : ShaderGUI {
 		meltMap = FindProperty("_MeltMap", props);
 		meltController = FindProperty("_MeltController", props);
 		meltTimeScale = FindProperty("_MeltActivationScale", props);
+		distortionMask = FindProperty("_DistortionMask", props);
 
 		shakeXAmount = FindProperty("_XShake", props);
 		shakeYAmount = FindProperty("_YShake", props);
@@ -373,6 +375,7 @@ public class CancerspaceInspector : ShaderGUI {
 						DisplayFloatWithSliderMode(me, meltTimeScale);
 						break;
 				}
+				DisplayRegularProperty(me, distortionMask);
 				
 			}),
 			
