@@ -27,7 +27,9 @@
 		_ObjectScaleZ ("Object Scale Z", Float) = 1
 		_ObjectScaleA ("Object Scale A", Float) = 1
 		
-		_MaxFalloff ("Falloff Range", Float) = 30
+		_MinFalloff ("Min Falloff", Float) = 30
+		_MaxFalloff ("Max Falloff", Float) = 30
+		[Enum(Sharp, 0, Linear, 1, Smooth, 2)] _FalloffCurve ("Curve", Int) = 0
 		
 		_BlurRadius ("Blur Radius", Range(0, 50)) = 0
 		_BlurSampling ("Blur Sampling", Range(1, 5)) = 1
@@ -194,6 +196,10 @@
 			#define DISTORT_TARGET_OVERLAY 1
 			#define DISTORT_TARGET_BOTH 2
 			
+			#define FALLOFF_CURVE_SHARP 0
+			#define FALLOFF_CURVE_LINEAR 1
+			#define FALLOFF_CURVE_SMOOTH 2
+			
 			// apparently Unity doesn't animate vector fields properly, so time for some hacky workarounds
 			#define _ScreenXOffset float4(_ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA)
 			#define _ScreenYOffset float4(_ScreenYOffsetR, _ScreenYOffsetG, _ScreenYOffsetB, _ScreenYOffsetA)
@@ -223,6 +229,10 @@
 				float4 posOrigin : TEXCOORD2;
 				float3 cubemapSampler : TEXCOORD3;
 			};
+			
+			float _MinFalloff;
+			float _MaxFalloff;
+			int _FalloffCurve;
 
 			int _OverlayImageType;
 			int _OverlayBoundaryHandling;
@@ -269,8 +279,6 @@
 			
 			int _Burn;
 			float _BurnLow, _BurnHigh;
-			
-			float _MaxFalloff;
 			
 			float _Puffiness;
 			
@@ -457,6 +465,26 @@
 				return lerp(b, getBlendedColor(b, s, mode), amount);
 			}
 			
+			float lerpstep(float x, float y, float s) {
+				// prevent NaN edge case
+				if (y == x) return step(y, s);
+				if (s < x) return 0;
+				if (s > y) return 1;
+				return (s - x) / (y - x);
+			}
+			
+			fixed calculateEffectAmplitudeFromFalloff(float dist) {
+				switch (_FalloffCurve) {
+					case FALLOFF_CURVE_SHARP:
+						return 1 - step(_MaxFalloff, dist);
+					case FALLOFF_CURVE_LINEAR:
+						return 1 - lerpstep(_MinFalloff, _MaxFalloff, dist);
+					case FALLOFF_CURVE_SMOOTH:
+						return 1 - smoothstep(_MinFalloff, _MaxFalloff, dist);
+				}
+				return 1;
+			}
+			
 			v2f vert (appdata v) {
 				v2f o;
 				
@@ -482,9 +510,9 @@
 			
 			fixed4 frag (v2f i) : SV_Target {
 				if (_MirrorMode == 1 && isInMirror() || _MirrorMode == 2 && !isInMirror()) discard;
-			
-				float3 originPoint = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
-				if (dot(originPoint, originPoint) > _MaxFalloff * _MaxFalloff) discard;
+				
+				float effectDistance = distance(mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz, _WorldSpaceCameraPos);
+				fixed allAmp = calculateEffectAmplitudeFromFalloff(effectDistance);
 				
 				float VRFix = 1;
 				#if defined(USING_STEREO_MATRICES)
@@ -514,7 +542,7 @@
 						break;
 				}
 				
-				distortion *= _DistortionMaskOpacity * tex2Dlod(_DistortionMask, float4((TRANSFORM_TEX((screenSpaceOverlayUV - .5), _DistortionMask) + .5), 0, 0)).r;
+				distortion *= allAmp * _DistortionMaskOpacity * tex2Dlod(_DistortionMask, float4((TRANSFORM_TEX((screenSpaceOverlayUV - .5), _DistortionMask) + .5), 0, 0)).r;
 				
 				
 				float4 color = 0;
@@ -592,7 +620,8 @@
 				}
 				
 				grabUV -= i.posOrigin.xy;
-				grabUV *= _Zoom;
+				grabUV *= lerp(1, _Zoom, allAmp);
+				_Pixelation *= allAmp;
 				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
 				grabUV += i.posOrigin.xy;
 				
@@ -603,7 +632,7 @@
 				
 				displace.x *= VRFix;
 				
-				grabUV += displace;
+				grabUV += allAmp * displace;
 				
 				float4 grabCol = float4(0, 0, 0, 1);
 				
@@ -616,7 +645,7 @@
 					sincos(blurNoiseRand.x, s, c);
 					
 					// FIXME: does this line need VRFix? i think it might.
-					float2 sampleUV = grabUV + (blurNoiseRand.y * _BlurRadius * float2(s, c)) / (_Garb_TexelSize.zw);
+					float2 sampleUV = grabUV + (blurNoiseRand.y * allAmp * _BlurRadius * float2(s, c)) / (_Garb_TexelSize.zw);
 					
 					float4 col;
 					
@@ -629,7 +658,7 @@
 						
 						if (!_ScreenReprojection) rotationAngle = 0;
 						
-						float2 uv = shift + multiplier * (rotate(sampleUV - rotationOrigin, rotationAngle) + rotationOrigin);
+						float2 uv = lerp(sampleUV, shift + multiplier * (rotate(sampleUV - rotationOrigin, rotationAngle) + rotationOrigin), allAmp);
 						
 						switch (_ScreenBoundaryHandling) {
 							case BOUNDARYMODE_CLAMP:
@@ -661,14 +690,15 @@
 				float3 hsv = rgb2hsv(grabCol.rgb) * _HSVMultiply + _HSVAdd;
 				hsv.r = frac(hsv.r);
 				hsv.gb = saturate(hsv.gb);
-				grabCol.rgb = hsv2rgb(hsv);
+				grabCol.rgb = lerp(grabCol.rgb, hsv2rgb(hsv), allAmp);
 				
 				// lol one-liner for exposure and shit, GOML
-				if (_Burn) grabCol.rgb = smoothstep(_BurnLow, _BurnHigh, grabCol.rgb);
+				if (_Burn) grabCol.rgb = lerp(grabCol.rgb, smoothstep(_BurnLow, _BurnHigh, grabCol.rgb), allAmp);
 				
-				float3 finalScreenColor = lerp(grabCol, float4(1 - grabCol.rgb, grabCol.a), _InversionAmount);
+				float3 finalScreenColor = lerp(grabCol, float4(1 - grabCol.rgb, grabCol.a), _InversionAmount * allAmp);
 				float overlayMask = _OverlayMaskOpacity * tex2Dlod(_OverlayMask, float4(.5+TRANSFORM_TEX((screenSpaceOverlayUV-.5), _OverlayMask), 0, 0)).r;
-				finalScreenColor = blend(finalScreenColor, color.rgb, _BlendMode, _BlendAmount * color.a * overlayMask);
+				finalScreenColor = blend(finalScreenColor, color.rgb, _BlendMode, _BlendAmount * color.a * overlayMask * allAmp);
+				
 				float overallMask = _OverallEffectMaskOpacity * tex2Dlod(_OverallEffectMask, float4(.5+TRANSFORM_TEX((screenSpaceOverlayUV-.5), _OverallEffectMask), 0, 0)).r;
 				finalScreenColor = blend(tex2D(_Garb, i.projPos.xy / i.projPos.w).rgb, finalScreenColor, _OverallEffectMaskBlendMode, overallMask);
 				

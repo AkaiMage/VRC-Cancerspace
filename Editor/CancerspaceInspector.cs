@@ -112,6 +112,8 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty objectRotationX, objectRotationY, objectRotationZ, objectRotationA;
 	protected CSProperty objectScaleX, objectScaleY, objectScaleZ, objectScaleA;
 	
+	protected CSProperty falloffCurve;
+	protected CSProperty falloffMinDistance;
 	protected CSProperty falloffMaxDistance;
 	
 	protected CSProperty blurRadius;
@@ -222,6 +224,8 @@ public class CancerspaceInspector : ShaderGUI {
 		objectScaleZ = FindProperty("_ObjectScaleZ", props);
 		objectScaleA = FindProperty("_ObjectScaleA", props);
 		
+		falloffCurve = FindProperty("_FalloffCurve", props);
+		falloffMinDistance = FindProperty("_MinFalloff", props);
 		falloffMaxDistance = FindProperty("_MaxFalloff", props);
 		
 		blurRadius = FindProperty("_BlurRadius", props);
@@ -348,6 +352,8 @@ public class CancerspaceInspector : ShaderGUI {
 		
 		CSCategory[] categories = new CSCategory[] {
 			new CSCategory(Styles.falloffSettingsTitle, defaultStyle, me => {
+				DisplayRegularProperty(me, falloffCurve);
+				if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, falloffMinDistance);
 				DisplayRegularProperty(me, falloffMaxDistance);
 			}),
 			
