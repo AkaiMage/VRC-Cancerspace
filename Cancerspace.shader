@@ -511,7 +511,8 @@
 			fixed4 frag (v2f i) : SV_Target {
 				if (_MirrorMode == 1 && isInMirror() || _MirrorMode == 2 && !isInMirror()) discard;
 				
-				float effectDistance = distance(mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz, _WorldSpaceCameraPos);
+				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
+				float effectDistance = length(viewVec);
 				fixed allAmp = calculateEffectAmplitudeFromFalloff(effectDistance);
 				
 				float VRFix = 1;
@@ -619,11 +620,14 @@
 					grabUV = i.projPos.xy / i.projPos.w;
 				}
 				
-				grabUV -= i.posOrigin.xy;
-				grabUV *= lerp(1, _Zoom, allAmp);
-				_Pixelation *= allAmp;
-				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
-				grabUV += i.posOrigin.xy;
+				if (distance(i.posOrigin.xy, saturate(i.posOrigin.xy)) == 0) {
+					grabUV -= i.posOrigin.xy;
+					_Zoom = lerp(1, _Zoom, saturate(-dot(normalize(viewVec), UNITY_MATRIX_V[2].xyz)));
+					grabUV *= lerp(1, _Zoom, allAmp);
+					_Pixelation *= allAmp;
+					if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
+					grabUV += i.posOrigin.xy;
+				}
 				
 				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
 				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + wobbleTiling);
@@ -700,9 +704,12 @@
 				finalScreenColor = blend(finalScreenColor, color.rgb, _BlendMode, _BlendAmount * color.a * overlayMask * allAmp);
 				
 				float overallMask = _OverallEffectMaskOpacity * tex2Dlod(_OverallEffectMask, float4(.5+TRANSFORM_TEX((screenSpaceOverlayUV-.5), _OverallEffectMask), 0, 0)).r;
-				finalScreenColor = blend(tex2D(_Garb, i.projPos.xy / i.projPos.w).rgb, finalScreenColor, _OverallEffectMaskBlendMode, overallMask * allAmp);
+				finalScreenColor *= lerp(1, _Color.rgb, allAmp);
+				float overallMaskFalloff = allAmp;
+				if (_OverallEffectMaskBlendMode == BLENDMODE_NORMAL)  overallMaskFalloff = 1 - step(_MaxFalloff, effectDistance);
+				finalScreenColor = blend(tex2D(_Garb, i.projPos.xy / i.projPos.w).rgb, finalScreenColor, _OverallEffectMaskBlendMode, overallMask * overallMaskFalloff);
 				
-				return float4(finalScreenColor, 1) * _Color;
+				return float4(finalScreenColor, 1);
 			}
 			ENDCG
 		}
