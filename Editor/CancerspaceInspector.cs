@@ -55,6 +55,7 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string screenYRotationOriginText = "Screen Rotation Origin Y (RGB)";
 		public static string screenRotationAngleText = "Screen Rotation Angle (RGB)";
 		public static string stencilTitle = "Stencil Testing";
+		public static string maskingTitle = "Masking";
 		public static string miscSettingsTitle = "Misc";
 		public static string renderQueueExportTitle = "Custom Render Queue Exporter";
 		public static string customRenderQueueSliderText = "Custom Render Queue";
@@ -179,7 +180,14 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty distortionAmplitude;
 	protected CSProperty distortionScrollSpeedX;
 	protected CSProperty distortionScrollSpeedY;
+	
 	protected CSProperty distortionMask;
+	protected CSProperty distortionMaskOpacity;
+	protected CSProperty overlayMask;
+	protected CSProperty overlayMaskOpacity;
+	protected CSProperty overallMask;
+	protected CSProperty overallMaskOpacity;
+	protected CSProperty overallMaskBlendMode;
 	
 	protected int customRenderQueue;
 	protected bool initialized;
@@ -313,6 +321,14 @@ public class CancerspaceInspector : ShaderGUI {
 		screenRotationAngleB = FindProperty("_ScreenRotationAngleB", props);
 		screenRotationAngleA = FindProperty("_ScreenRotationAngleA", props);
 		
+		distortionMask = FindProperty("_DistortionMask", props);
+		distortionMaskOpacity = FindProperty("_DistortionMaskOpacity", props);
+		overlayMask = FindProperty("_OverlayMask", props);
+		overlayMaskOpacity = FindProperty("_OverlayMaskOpacity", props);
+		overallMask = FindProperty("_OverallEffectMask", props);
+		overallMaskOpacity = FindProperty("_OverallEffectMaskOpacity", props);
+		overallMaskBlendMode = FindProperty("_OverallEffectMaskBlendMode", props);
+		
 		mirrorReflectionMode = FindProperty("_MirrorMode", props);
 	}
 	
@@ -380,7 +396,7 @@ public class CancerspaceInspector : ShaderGUI {
 			}),
 			
 			new CSCategory(Styles.overlaySettingsTitle, defaultStyle, me => {
-				BlendModePopup(me);
+				BlendModePopup(me, overlayBlendMode);
 				DisplayRegularProperty(me, overlayImageType);
 				switch ((int) overlayImageType.prop.floatValue) {
 					// TODO: replace these with proper enums so there's no magic numbers
@@ -496,6 +512,18 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayIntSlider(me, stencilWriteMask, 0, 255);
 			}),
 			
+			new CSCategory(Styles.maskingTitle, defaultStyle, me => {
+				DisplayRegularProperty(me, distortionMask);
+				DisplayFloatRangeProperty(me, distortionMaskOpacity);
+				
+				DisplayRegularProperty(me, overlayMask);
+				DisplayFloatRangeProperty(me, overlayMaskOpacity);
+				
+				DisplayRegularProperty(me, overallMask);
+				DisplayFloatRangeProperty(me, overallMaskOpacity);
+				BlendModePopup(me, overallMaskBlendMode);
+			}),
+			
 			new CSCategory(Styles.miscSettingsTitle, defaultStyle, me => {
 				DisplayRegularProperty(me, cullMode);
 				DisplayRegularProperty(me, zTest);
@@ -583,14 +611,14 @@ public class CancerspaceInspector : ShaderGUI {
 		randomizingCurrentPass = false;
 	}
 	
-	void BlendModePopup(MaterialEditor materialEditor) {
-		EditorGUI.showMixedValue = overlayBlendMode.prop.hasMixedValue;
-		var mode = (BlendMode) overlayBlendMode.prop.floatValue;
+	void BlendModePopup(MaterialEditor materialEditor, CSProperty prop) {
+		EditorGUI.showMixedValue = prop.prop.hasMixedValue;
+		var mode = (BlendMode) prop.prop.floatValue;
 		EditorGUI.BeginChangeCheck();
-		mode = (BlendMode) EditorGUILayout.Popup(overlayBlendMode.prop.displayName, (int) mode, Styles.blendNames);
+		mode = (BlendMode) EditorGUILayout.Popup(prop.prop.displayName, (int) mode, Styles.blendNames);
 		if (EditorGUI.EndChangeCheck()) {
-			materialEditor.RegisterPropertyChangeUndo(overlayBlendMode.prop.displayName);
-			overlayBlendMode.prop.floatValue = (float) mode;
+			materialEditor.RegisterPropertyChangeUndo(prop.prop.displayName);
+			prop.prop.floatValue = (float) mode;
 		}
 		EditorGUI.showMixedValue = false;
 	}

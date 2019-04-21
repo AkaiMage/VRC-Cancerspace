@@ -52,7 +52,6 @@
 		_DistortionAmplitude ("Amplitude", Range(-1, 1)) = 0.1
 		_BumpMapScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
 		_BumpMapScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
-		_DistortionMask("Distortion Mask", 2D) = "white" {}
 		
 		[PowerSlider(2.0)]_XShake ("X Shake", Range(0, 1)) = 0
 		[PowerSlider(2.0)]_YShake ("Y Shake", Range(0, 1)) = 0
@@ -127,6 +126,14 @@
 		_ScreenRotationAngleG ("Screen Rotation Angle (Green)", Range(-360, 360)) = 0
 		_ScreenRotationAngleB ("Screen Rotation Angle (Blue)", Range(-360, 360)) = 0
 		_ScreenRotationAngleA ("Screen Rotation Angle (All)", Range(-360, 360)) = 0
+		
+		_DistortionMask ("Distortion Mask", 2D) = "white" {}
+		_DistortionMaskOpacity ("Opacity", Range(0, 1)) = 1
+		_OverlayMask ("Overlay Mask", 2D) = "white" {}
+		_OverlayMaskOpacity ("Opacity", Range(0, 1)) = 1
+		_OverallEffectMask ("Entire Effect Mask", 2D) = "white" {}
+		_OverallEffectMaskOpacity ("Opacity", Range(0, 1)) = 1
+		_OverallEffectMaskBlendMode ("Blend Mode", Int) = 9
 		
 		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode ("Mirror Reflectance", Int) = 0
 	}
@@ -300,8 +307,18 @@
 			sampler2D _MeltMap;
 			float4 _MeltMap_ST;
 			float _MeltController, _MeltActivationScale;
+			
 			sampler2D _DistortionMask;
 			float4 _DistortionMask_ST;
+			float _DistortionMaskOpacity;
+			sampler2D _OverlayMask;
+			float4 _OverlayMask_ST;
+			float _OverlayMaskOpacity;
+			sampler2D _OverallEffectMask;
+			float4 _OverallEffectMask_ST;
+			float _OverallEffectMaskOpacity;
+			int _OverallEffectMaskBlendMode;
+			
 			
 			float2 hash23(float3 p) {
 				if (_AnimatedSampling) p.z += frac(_Time.z) * 4;
@@ -398,6 +415,48 @@
 				return res;
 			}
 			
+			float3 getBlendedColor(float3 b, float3 s, int mode) {
+				switch (mode) {
+					case BLENDMODE_MULTIPLY:
+						return b * s;
+					case BLENDMODE_SCREEN:
+						return 1 - (1 - b) * (1 - s);
+					case BLENDMODE_OVERLAY:
+						return hardLight(s, b);
+					case BLENDMODE_ADD:
+						return saturate(b + s);
+					case BLENDMODE_SUBTRACT:
+						return saturate(b - s);
+					case BLENDMODE_DIFFERENCE:
+						return abs(b - s);
+					case BLENDMODE_DIVIDE:
+						return saturate(b / s);
+					case BLENDMODE_DARKEN:
+						return min(b, s);
+					case BLENDMODE_LIGHTEN:
+						return max(b, s);
+					case BLENDMODE_NORMAL:
+						return s;
+					case BLENDMODE_COLORDODGE:
+						return colorDodge(b, s);
+					case BLENDMODE_COLORBURN:
+						return colorBurn(b, s);
+					case BLENDMODE_HARDLIGHT:
+						return hardLight(b, s);
+					case BLENDMODE_SOFTLIGHT:
+						return softLight(b, s);
+					case BLENDMODE_EXCLUSION:
+						return b + s - 2 * b * s;
+				}
+				
+				// should never reach here
+				return 0;
+			}
+			
+			float3 blend(float3 b, float3 s, int mode, fixed amount) {
+				return lerp(b, getBlendedColor(b, s, mode), amount);
+			}
+			
 			v2f vert (appdata v) {
 				v2f o;
 				
@@ -455,7 +514,7 @@
 						break;
 				}
 				
-				distortion *= tex2Dlod(_DistortionMask, float4((TRANSFORM_TEX((screenSpaceOverlayUV - .5), _DistortionMask) + .5), 0, 0)).r;
+				distortion *= _DistortionMaskOpacity * tex2Dlod(_DistortionMask, float4((TRANSFORM_TEX((screenSpaceOverlayUV - .5), _DistortionMask) + .5), 0, 0)).r;
 				
 				
 				float4 color = 0;
@@ -608,59 +667,10 @@
 				if (_Burn) grabCol.rgb = smoothstep(_BurnLow, _BurnHigh, grabCol.rgb);
 				
 				float3 finalScreenColor = lerp(grabCol, float4(1 - grabCol.rgb, grabCol.a), _InversionAmount);
-				
-				float blendAmount = _BlendAmount * color.a;
-				float3 blendedColor = 0;
-				
-				switch (_BlendMode) {
-					case BLENDMODE_MULTIPLY:
-						blendedColor = finalScreenColor * color.rgb;
-						break;
-					case BLENDMODE_SCREEN:
-						blendedColor = 1 - (1 - finalScreenColor) * (1 - color.rgb);
-						break;
-					case BLENDMODE_OVERLAY:
-						blendedColor = hardLight(color.rgb, finalScreenColor);
-						break;
-					case BLENDMODE_ADD:
-						blendedColor = saturate(finalScreenColor + color.rgb);
-						break;
-					case BLENDMODE_SUBTRACT:
-						blendedColor = saturate(finalScreenColor - color.rgb);
-						break;
-					case BLENDMODE_DIFFERENCE:
-						blendedColor = abs(finalScreenColor - color.rgb);
-						break;
-					case BLENDMODE_DIVIDE:
-						blendedColor = saturate(finalScreenColor / color.rgb);
-						break;
-					case BLENDMODE_DARKEN:
-						blendedColor = min(finalScreenColor, color.rgb);
-						break;
-					case BLENDMODE_LIGHTEN:
-						blendedColor = max(finalScreenColor, color.rgb);
-						break;
-					case BLENDMODE_NORMAL:
-						blendedColor = color.rgb;
-						break;
-					case BLENDMODE_COLORDODGE:
-						blendedColor = colorDodge(finalScreenColor, color.rgb);
-						break;
-					case BLENDMODE_COLORBURN:
-						blendedColor = colorBurn(finalScreenColor, color.rgb);
-						break;
-					case BLENDMODE_HARDLIGHT:
-						blendedColor = hardLight(finalScreenColor, color.rgb);
-						break;
-					case BLENDMODE_SOFTLIGHT:
-						blendedColor = softLight(finalScreenColor, color.rgb);
-						break;
-					case BLENDMODE_EXCLUSION:
-						blendedColor = finalScreenColor + color.rgb - 2 * finalScreenColor * color.rgb;
-						break;
-				}
-				
-				finalScreenColor = lerp(finalScreenColor, blendedColor, blendAmount);
+				float overlayMask = _OverlayMaskOpacity * tex2Dlod(_OverlayMask, float4(.5+TRANSFORM_TEX((screenSpaceOverlayUV-.5), _OverlayMask), 0, 0)).r;
+				finalScreenColor = blend(finalScreenColor, color.rgb, _BlendMode, _BlendAmount * color.a * overlayMask);
+				float overallMask = _OverallEffectMaskOpacity * tex2Dlod(_OverallEffectMask, float4(.5+TRANSFORM_TEX((screenSpaceOverlayUV-.5), _OverallEffectMask), 0, 0)).r;
+				finalScreenColor = blend(tex2D(_Garb, i.projPos.xy / i.projPos.w).rgb, finalScreenColor, _OverallEffectMaskBlendMode, overallMask);
 				
 				return float4(finalScreenColor, 1) * _Color;
 			}
