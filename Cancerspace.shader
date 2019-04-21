@@ -1,7 +1,7 @@
 ﻿Shader "RedMage/Cancerspace" {
 	Properties {
 		[Enum(UnityEngine.Rendering.CullMode)] _CullMode ("Cull Mode", Float) = 0
-		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Int) = 4
+		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Int) = 8
 		[Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Int) = 1
 		_ColorMask ("Color Mask", Int) = 15
 		
@@ -28,7 +28,7 @@
 		_ObjectScaleA ("Object Scale A", Float) = 1
 		
 		_MinFalloff ("Min Falloff", Float) = 30
-		_MaxFalloff ("Max Falloff", Float) = 30
+		_MaxFalloff ("Max Falloff", Float) = 60
 		[Enum(Sharp, 0, Linear, 1, Smooth, 2)] _FalloffCurve ("Curve", Int) = 0
 		
 		_BlurRadius ("Blur Radius", Range(0, 50)) = 0
