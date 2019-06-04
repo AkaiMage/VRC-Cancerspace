@@ -94,7 +94,7 @@
 		_InversionAmount ("Inversion Amount", Range(0,1)) = 0
 		[HDR] _Color ("Screen Color", Color) = (1,1,1,1)
 		
-		[Toggle(_)] _Burn ("Color Burning", Int) = 0
+		[Toggle(_)] _Burn ("Color Burning (No Bloom)", Int) = 0
 		_BurnLow ("Color Burn Low", Range(-5, 5)) = 0
 		_BurnHigh ("Color Burn High", Range(-5, 5)) = 1
 		
@@ -336,11 +336,11 @@
 			}
 			
 			float3 hsv2rgb(float3 c) {
-				return ((clamp(abs(frac(c.x+float3(0,.666,.333))*6-3)-1,0,1)-1)*c.y+1)*c.z;
+				return ((clamp(abs(frac(c.x+float3(0,2./3,1./3))*6-3)-1,0,1)-1)*c.y+1)*c.z;
 			}
 			
 			float3 rgb2hsv(float3 c) {
-				float4 K = float4(0, -.333, .666, -1);
+				float4 K = float4(0, -1./3, 2./3, -1);
 				float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
 				float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
 
@@ -693,7 +693,7 @@
 				
 				float3 hsv = rgb2hsv(grabCol.rgb) * _HSVMultiply + _HSVAdd;
 				hsv.r = frac(hsv.r);
-				hsv.gb = saturate(hsv.gb);
+				hsv.g = saturate(hsv.g);
 				grabCol.rgb = lerp(grabCol.rgb, hsv2rgb(hsv), allAmp);
 				
 				// lol one-liner for exposure and shit, GOML
