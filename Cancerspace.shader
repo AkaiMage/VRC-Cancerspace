@@ -13,6 +13,8 @@
 		_StencilReadMask ("Read Mask", Int) = 255
 		_StencilWriteMask ("Write Mask", Int) = 255
 		
+		[Enum(Flat, 0, Sphere, 1)] _ProjectionType ("Projection Type", Int) = 0
+		
 		_Puffiness ("Puffiness", Float) = 0
 		_ObjectPositionX ("Object Position X", Float) = 0
 		_ObjectPositionY ("Object Position Y", Float) = 0
@@ -169,6 +171,9 @@
 			#pragma vertex vert
 			#pragma fragment frag
 			
+			#define PROJECTION_FLAT 0
+			#define PROJECTION_SPHERE 1
+			
 			#define BLENDMODE_MULTIPLY 0
 			#define BLENDMODE_SCREEN 1
 			#define BLENDMODE_OVERLAY 2
@@ -247,6 +252,8 @@
 				float4 posOrigin : TEXCOORD2;
 				float3 cubemapSampler : TEXCOORD3;
 			};
+			
+			int _ProjectionType;
 			
 			float _MinFalloff;
 			float _MaxFalloff;
@@ -392,6 +399,14 @@
 				float height = _Garb_TexelSize.w;
 				
 				return .5 * (1 - adjusted * float2((height*(width+1))/(width*(height+1)), 1));
+			}
+			
+			float2 computeSphereUV(float3 worldSpacePos) {
+				float3 viewDir = normalize(worldSpacePos - _WorldSpaceCameraPos);
+				float lat = acos(viewDir.y);
+				float lon = atan2(viewDir.z, viewDir.x);
+				lon = fmod(lon + UNITY_PI - _Time.y / 2, UNITY_TWO_PI) - UNITY_PI;
+				return 1 - float2(lon, lat) / UNITY_PI;
 			}
 			
 			bool isInMirror() {
@@ -573,13 +588,22 @@
 				_ScreenReprojection = 0;
 				#endif
 				
-				float2 screenSpaceOverlayUV = computeScreenSpaceOverlayUV(i.posWorld);
+				float2 screenSpaceOverlayUV = 0;
+				
+				UNITY_BRANCH switch (_ProjectionType) {
+					case PROJECTION_FLAT:
+						screenSpaceOverlayUV = computeScreenSpaceOverlayUV(i.posWorld);
+						break;
+					case PROJECTION_SPHERE:
+						screenSpaceOverlayUV = computeSphereUV(i.posWorld);
+						break;
+				}
 				
 				float2 distortion = 0;
 				float2 distortionUV = screenSpaceOverlayUV - .5;
 				distortionUV = mul(createRotationMatrix(_DistortionMapRotation), distortionUV);
 				
-				switch (_DistortionType) {
+				UNITY_BRANCH switch (_DistortionType) {
 					case DISTORT_NORMAL:
 						distortion = UnpackNormal(tex2Dlod(_BumpMap, float4(TRANSFORM_TEX((distortionUV + _Time.yy * _BumpMapScrollSpeed), _BumpMap) + .5, 0, 0))).xy * _DistortionAmplitude;
 						break;
@@ -601,7 +625,7 @@
 				
 				
 				float4 color = 0;
-				switch (_OverlayImageType) {
+				UNITY_BRANCH switch (_OverlayImageType) {
 					case OVERLAY_IMAGE:
 					case OVERLAY_FLIPBOOK:
 						{

@@ -196,6 +196,7 @@ public class CancerspaceInspector : ShaderGUI {
 	
 	protected CSProperty eyeSelector;
 	protected CSProperty platformSelector;
+	protected CSProperty projectionType;
 	
 	protected int customRenderQueue;
 	protected bool initialized;
@@ -345,6 +346,7 @@ public class CancerspaceInspector : ShaderGUI {
 		mirrorReflectionMode = FindProperty("_MirrorMode", props);
 		eyeSelector = FindProperty("_EyeSelector", props);
 		platformSelector = FindProperty("_PlatformSelector", props);
+		projectionType = FindProperty("_ProjectionType", props);
 	}
 	
 	public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties) {
@@ -555,6 +557,7 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayRegularProperty(me, mirrorReflectionMode);
 				DisplayRegularProperty(me, eyeSelector);
 				DisplayRegularProperty(me, platformSelector);
+				DisplayRegularProperty(me, projectionType);
 			}),
 			
 			new CSCategory(Styles.renderQueueExportTitle, defaultStyle, me => {
