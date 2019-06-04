@@ -49,9 +49,11 @@
 		[Enum(Screen, 0, Overlay, 1, Both, 2)] _DistortionTarget ("Target", Int) = 0
 		_BumpMap ("Distortion Map (Normal)", 2D) = "bump" {}
 		_MeltMap ("Melt Map", 2D) = "white" {}
+		_DistortionMapRotation ("Map Rotation", Range(0, 360)) = 0
 		_MeltActivationScale ("Activation Time Scale", Range(0, 3)) = 1
 		_MeltController ("Controller", Range(0, 3)) = 0
 		_DistortionAmplitude ("Amplitude", Range(-1, 1)) = 0.1
+		_DistortionRotation ("Direction Rotation", Range(0, 360)) = 0
 		_BumpMapScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
 		_BumpMapScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
 		
@@ -65,6 +67,7 @@
 		[Enum(Clamp, 0, Repeat, 1, Screen, 2)] _OverlayBoundaryHandling ("Boundary Handling", Int) = 1
 		[Toggle(_)] _PixelatedSampling ("Pixelate", Int) = 0
 		_MainTex ("Image Overlay", 2D) = "white" {}
+		_MainTexRotation ("Rotation", Range(0, 360)) = 0
 		_MainTexScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
 		_MainTexScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
 		[NoScaleOffset] _OverlayCubemap ("Cubemap Overlay", Cube) = "white" {}
@@ -256,6 +259,7 @@
 			float4 _MainTex_TexelSize;
 			float4 _MainTex_ST;
 			float _MainTexScrollSpeedX, _MainTexScrollSpeedY;
+			float _MainTexRotation;
 			
 			int _PixelatedSampling;
 			
@@ -325,7 +329,9 @@
 			int _DistortionType, _DistortionTarget;
 			sampler2D _BumpMap;
 			float4 _BumpMap_ST;
+			float _DistortionMapRotation;
 			float _DistortionAmplitude;
+			float _DistortionRotation;
 			float _BumpMapScrollSpeedX, _BumpMapScrollSpeedY;
 			sampler2D _MeltMap;
 			float4 _MeltMap_ST;
@@ -570,14 +576,16 @@
 				float2 screenSpaceOverlayUV = computeScreenSpaceOverlayUV(i.posWorld);
 				
 				float2 distortion = 0;
+				float2 distortionUV = screenSpaceOverlayUV - .5;
+				distortionUV = mul(createRotationMatrix(_DistortionMapRotation), distortionUV);
 				
 				switch (_DistortionType) {
 					case DISTORT_NORMAL:
-						distortion = UnpackNormal(tex2Dlod(_BumpMap, float4(TRANSFORM_TEX((screenSpaceOverlayUV + _Time.yy * _BumpMapScrollSpeed - .5), _BumpMap) + .5, 0, 0))).xy * _DistortionAmplitude;
+						distortion = UnpackNormal(tex2Dlod(_BumpMap, float4(TRANSFORM_TEX((distortionUV + _Time.yy * _BumpMapScrollSpeed), _BumpMap) + .5, 0, 0))).xy * _DistortionAmplitude;
 						break;
 					case DISTORT_MELT:
 						{
-							float4 meltVal = tex2Dlod(_MeltMap, float4(TRANSFORM_TEX((screenSpaceOverlayUV - .5), _MeltMap) + .5, 0, 0));
+							float4 meltVal = tex2Dlod(_MeltMap, float4(TRANSFORM_TEX(distortionUV, _MeltMap) + .5, 0, 0));
 							float2 motionVector = normalize(2 * meltVal.rg - 1);
 							float activationTime = meltVal.b * _MeltActivationScale;
 							float speed = meltVal.a * _DistortionAmplitude;
@@ -589,6 +597,7 @@
 				}
 				
 				distortion *= allAmp * _DistortionMaskOpacity * tex2Dlod(_DistortionMask, float4((TRANSFORM_TEX((screenSpaceOverlayUV - .5), _DistortionMask) + .5), 0, 0)).r;
+				distortion = mul(createRotationMatrix(_DistortionRotation), distortion);
 				
 				
 				float4 color = 0;
@@ -608,7 +617,9 @@
 									uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
 									break;
 							}
-							uv = TRANSFORM_TEX((uv - .5), _MainTex) + .5;
+							uv -= .5;
+							uv = mul(createRotationMatrix(_MainTexRotation), uv);
+							uv = TRANSFORM_TEX(uv, _MainTex) + .5;
 							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
 								color = 0;
 							} else {
@@ -626,7 +637,9 @@
 							
 							if (_DistortionTarget == DISTORT_TARGET_OVERLAY || _DistortionTarget == DISTORT_TARGET_BOTH) uv += distortion;
 							
-							uv = TRANSFORM_TEX((uv - .5), _MainTex) + .5;
+							uv -= .5;
+							uv = mul(createRotationMatrix(_MainTexRotation), uv);
+							uv = TRANSFORM_TEX(uv, _MainTex) + .5;
 							switch (_OverlayBoundaryHandling) {
 								case BOUNDARYMODE_CLAMP:
 									uv = saturate(uv);

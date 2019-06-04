@@ -140,6 +140,7 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty overlayPixelate;
 	protected CSProperty overlayBoundary;
 	protected CSProperty overlayImage;
+	protected CSProperty overlayRotation;
 	protected CSProperty overlayScrollSpeedX;
 	protected CSProperty overlayScrollSpeedY;
 	protected CSProperty overlayFlipbookRows, overlayFlipbookCols;
@@ -177,9 +178,11 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty distortionTarget;
 	protected CSProperty distortionMap;
 	protected CSProperty meltMap;
+	protected CSProperty distortionMapRotation;
 	protected CSProperty meltTimeScale;
 	protected CSProperty meltController;
 	protected CSProperty distortionAmplitude;
+	protected CSProperty distortionRotation;
 	protected CSProperty distortionScrollSpeedX;
 	protected CSProperty distortionScrollSpeedY;
 	
@@ -248,7 +251,9 @@ public class CancerspaceInspector : ShaderGUI {
 		distortionType = FindProperty("_DistortionType", props);
 		distortionTarget = FindProperty("_DistortionTarget", props);
 		distortionMap = FindProperty("_BumpMap", props);
+		distortionMapRotation = FindProperty("_DistortionMapRotation", props);
 		distortionAmplitude = FindProperty("_DistortionAmplitude", props);
+		distortionRotation = FindProperty("_DistortionRotation", props);
 		distortionScrollSpeedX = FindProperty("_BumpMapScrollSpeedX", props);
 		distortionScrollSpeedY = FindProperty("_BumpMapScrollSpeedY", props);
 		meltMap = FindProperty("_MeltMap", props);
@@ -264,6 +269,7 @@ public class CancerspaceInspector : ShaderGUI {
 		
 		overlayImageType = FindProperty("_OverlayImageType", props);
 		overlayImage = FindProperty("_MainTex", props);
+		overlayRotation = FindProperty("_MainTexRotation", props);
 		overlayPixelate = FindProperty("_PixelatedSampling", props);
 		overlayScrollSpeedX = FindProperty("_MainTexScrollSpeedX", props);
 		overlayScrollSpeedY = FindProperty("_MainTexScrollSpeedY", props);
@@ -391,13 +397,17 @@ public class CancerspaceInspector : ShaderGUI {
 				switch ((int) distortionType.prop.floatValue) {
 					case 0:
 						DisplayRegularProperty(me, distortionMap);
+						DisplayFloatWithSliderMode(me, distortionMapRotation);
 						DisplayFloatWithSliderMode(me, distortionAmplitude);
+						DisplayFloatWithSliderMode(me, distortionRotation);
 						DisplayFloatWithSliderMode(me, distortionScrollSpeedX);
 						DisplayFloatWithSliderMode(me, distortionScrollSpeedY);
 						break;
 					case 1:
 						DisplayRegularProperty(me, meltMap);
+						DisplayFloatWithSliderMode(me, distortionMapRotation);
 						DisplayFloatWithSliderMode(me, distortionAmplitude);
+						DisplayFloatWithSliderMode(me, distortionRotation);
 						DisplayFloatWithSliderMode(me, meltController);
 						DisplayFloatWithSliderMode(me, meltTimeScale);
 						break;
@@ -416,6 +426,7 @@ public class CancerspaceInspector : ShaderGUI {
 						DisplayRegularProperty(me, overlayPixelate);
 						me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
 						me.TextureScaleOffsetProperty(overlayImage.prop);
+						DisplayFloatWithSliderMode(me, overlayRotation);
 						if (overlayBoundary.prop.floatValue != 0) {
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
@@ -426,6 +437,7 @@ public class CancerspaceInspector : ShaderGUI {
 						DisplayRegularProperty(me, overlayPixelate);
 						me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
 						me.TextureScaleOffsetProperty(overlayImage.prop);
+						DisplayFloatWithSliderMode(me, overlayRotation);
 						if (overlayBoundary.prop.floatValue != 0) {
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
