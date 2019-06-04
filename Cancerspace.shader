@@ -405,7 +405,7 @@
 				float3 viewDir = normalize(worldSpacePos - _WorldSpaceCameraPos);
 				float lat = acos(viewDir.y);
 				float lon = atan2(viewDir.z, viewDir.x);
-				lon = fmod(lon + UNITY_PI - _Time.y / 2, UNITY_TWO_PI) - UNITY_PI;
+				lon = fmod(lon + UNITY_PI, UNITY_TWO_PI) - UNITY_PI;
 				return 1 - float2(lon, lat) / UNITY_PI;
 			}
 			
