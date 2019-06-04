@@ -138,6 +138,8 @@
 		_OverallEffectMaskBlendMode ("Blend Mode", Int) = 9
 		
 		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode ("Mirror Reflectance", Int) = 0
+		[Enum(Both, 0, Left, 1, Right, 2)] _EyeSelector ("Eye Discrimination", Int) = 0
+		[Enum(Both, 0, Desktop, 1, VR, 2)] _PlatformSelector ("Platform Discrimination", Int) = 0
 	}
 	SubShader {
 		Tags { "Queue" = "Transparent+3" }
@@ -200,6 +202,18 @@
 			#define FALLOFF_CURVE_LINEAR 1
 			#define FALLOFF_CURVE_SMOOTH 2
 			
+			#define MIRROR_NORMAL 0
+			#define MIRROR_DISABLE 1
+			#define MIRROR_ONLY 2
+			
+			#define EYE_BOTH 0
+			#define EYE_LEFT 1
+			#define EYE_RIGHT 2
+			
+			#define PLATFORM_ALL 0
+			#define PLATFORM_DESKTOP 1
+			#define PLATFORM_VR 2
+			
 			// apparently Unity doesn't animate vector fields properly, so time for some hacky workarounds
 			#define _ScreenXOffset float4(_ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA)
 			#define _ScreenYOffset float4(_ScreenYOffsetR, _ScreenYOffsetG, _ScreenYOffsetB, _ScreenYOffsetA)
@@ -216,6 +230,7 @@
 			#define _ScreenRotationAngle (float3(_ScreenRotationAngleR, _ScreenRotationAngleG, _ScreenRotationAngleB) + _ScreenRotationAngleA)
 			
 			#include "UnityCG.cginc"
+			#include "AutoLight.cginc"
 
 			struct appdata {
 				float4 vertex : POSITION;
@@ -327,6 +342,8 @@
 			float _OverallEffectMaskOpacity;
 			int _OverallEffectMaskBlendMode;
 			
+			int _EyeSelector;
+			int _PlatformSelector;
 			
 			float2 hash23(float3 p) {
 				if (_AnimatedSampling) p.z += frac(_Time.z) * 4;
@@ -373,6 +390,14 @@
 			
 			bool isInMirror() {
 				return unity_CameraProjection[2][0] != 0 || unity_CameraProjection[2][1] != 0;
+			}
+			
+			bool isEye(int eyeIndex, bool mirror) {
+				if (mirror) {
+					return (UNITY_MATRIX_P._13 >= 0) == eyeIndex;
+				} else {
+					return unity_StereoEyeIndex == eyeIndex;
+				}
 			}
 			
 			float2 pixelateSamples(float2 res, float2 invRes, float2 uv) {
@@ -489,6 +514,27 @@
 			v2f vert (appdata v) {
 				v2f o;
 				
+				bool inMirror = isInMirror();
+				bool noRender = 
+					_MirrorMode == MIRROR_DISABLE && inMirror
+					|| _MirrorMode == MIRROR_ONLY && !inMirror
+					#if defined(USING_STEREO_MATRICES)
+					|| _PlatformSelector == PLATFORM_DESKTOP
+					|| _EyeSelector == EYE_LEFT && !isEye(0, inMirror)
+					|| _EyeSelector == EYE_RIGHT && !isEye(1, inMirror)
+					#else
+					|| _PlatformSelector == PLATFORM_VR
+					#endif
+					;
+				
+				
+				if (noRender) {
+					v.vertex.xyz = 1.0e25;
+					o = (v2f) 0;
+					o.pos = UnityObjectToClipPos(v.vertex);
+					return o;
+				}
+				
 				v.vertex.yz = mul(createRotationMatrix(_ObjectRotationX), v.vertex.yz);
 				v.vertex.xz = mul(createRotationMatrix(_ObjectRotationY), v.vertex.xz);
 				v.vertex.xy = mul(createRotationMatrix(_ObjectRotationZ), v.vertex.xy);
@@ -510,8 +556,6 @@
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {
-				if (_MirrorMode == 1 && isInMirror() || _MirrorMode == 2 && !isInMirror()) discard;
-				
 				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
 				float effectDistance = length(viewVec);
 				fixed allAmp = calculateEffectAmplitudeFromFalloff(effectDistance);

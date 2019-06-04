@@ -191,6 +191,9 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty overallMaskOpacity;
 	protected CSProperty overallMaskBlendMode;
 	
+	protected CSProperty eyeSelector;
+	protected CSProperty platformSelector;
+	
 	protected int customRenderQueue;
 	protected bool initialized;
 	
@@ -334,6 +337,8 @@ public class CancerspaceInspector : ShaderGUI {
 		overallMaskBlendMode = FindProperty("_OverallEffectMaskBlendMode", props);
 		
 		mirrorReflectionMode = FindProperty("_MirrorMode", props);
+		eyeSelector = FindProperty("_EyeSelector", props);
+		platformSelector = FindProperty("_PlatformSelector", props);
 	}
 	
 	public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties) {
@@ -536,6 +541,8 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayRegularProperty(me, zWrite);
 				ShowColorMaskFlags(me, colorMask);
 				DisplayRegularProperty(me, mirrorReflectionMode);
+				DisplayRegularProperty(me, eyeSelector);
+				DisplayRegularProperty(me, platformSelector);
 			}),
 			
 			new CSCategory(Styles.renderQueueExportTitle, defaultStyle, me => {
