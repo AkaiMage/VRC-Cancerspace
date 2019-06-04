@@ -603,11 +603,31 @@
 				float4 color = 0;
 				switch (_OverlayImageType) {
 					case OVERLAY_IMAGE:
+					case OVERLAY_FLIPBOOK:
 						{
+							bool flipbook = _OverlayImageType == OVERLAY_FLIPBOOK;
+							float currentFrame = 0;
+							float2 invCR = 1;
+							
 							float2 uv = screenSpaceOverlayUV;
-							if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw, _MainTex_TexelSize.xy, uv);
+							
+							float2 res = _MainTex_TexelSize.zw, invRes = _MainTex_TexelSize.xy;
+							
+							if (flipbook) {
+								currentFrame = floor(fmod(_FlipbookStartFrame + _Time.y * _FlipbookFPS, _FlipbookTotalFrames));
+								float2 cr = float2(_FlipbookColumns, _FlipbookRows);
+								invCR = 1 / cr;
+								res *= invCR;
+								invRes *= cr;
+							}
+							
+							if (_PixelatedSampling) uv = pixelateSamples(res, invRes, uv);
 							
 							if (_DistortionTarget == DISTORT_TARGET_OVERLAY || _DistortionTarget == DISTORT_TARGET_BOTH) uv += distortion;
+							
+							uv -= .5;
+							uv = mul(createRotationMatrix(_MainTexRotation), uv);
+							uv = TRANSFORM_TEX(uv, _MainTex) + .5;
 							
 							switch (_OverlayBoundaryHandling) {
 								case BOUNDARYMODE_CLAMP:
@@ -617,48 +637,19 @@
 									uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
 									break;
 							}
-							uv -= .5;
-							uv = mul(createRotationMatrix(_MainTexRotation), uv);
-							uv = TRANSFORM_TEX(uv, _MainTex) + .5;
+							
+							if (flipbook) {
+								float row = floor(currentFrame * invCR.x);
+								float2 offset = float2(currentFrame - row * _FlipbookColumns, _FlipbookRows - row - 1);
+								
+								uv = frac((uv + offset) * invCR);
+							}
+							
 							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
 								color = 0;
 							} else {
 								color = tex2Dlod(_MainTex, float4(uv, 0, 0)) * _OverlayColor;
 							}
-						}
-						break;
-					case OVERLAY_FLIPBOOK:
-						{
-							float currentFrame = floor(fmod(_FlipbookStartFrame + _Time.y * _FlipbookFPS, _FlipbookTotalFrames));
-							float2 invCR = 1 / float2(_FlipbookColumns, _FlipbookRows);
-							
-							float2 uv = screenSpaceOverlayUV;
-							if (_PixelatedSampling) uv = pixelateSamples(_MainTex_TexelSize.zw * invCR, _MainTex_TexelSize.xy * float2(_FlipbookColumns, _FlipbookRows), uv);
-							
-							if (_DistortionTarget == DISTORT_TARGET_OVERLAY || _DistortionTarget == DISTORT_TARGET_BOTH) uv += distortion;
-							
-							uv -= .5;
-							uv = mul(createRotationMatrix(_MainTexRotation), uv);
-							uv = TRANSFORM_TEX(uv, _MainTex) + .5;
-							switch (_OverlayBoundaryHandling) {
-								case BOUNDARYMODE_CLAMP:
-									uv = saturate(uv);
-									break;
-								case BOUNDARYMODE_REPEAT:
-									uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
-									break;
-							}
-							
-							float row = floor(currentFrame * invCR.x);
-							float2 offset = float2(currentFrame - row * _FlipbookColumns, _FlipbookRows - row - 1);
-							
-							float2 newUVs = frac((uv + offset) * invCR);
-							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(newUVs.x) != newUVs.x || saturate(newUVs.y) != newUVs.y)) {
-								color = 0;
-							} else {
-								color = tex2Dlod(_MainTex, float4(newUVs, 0, 0)) * _OverlayColor;
-							}
-							
 						}
 						break;
 					case OVERLAY_CUBEMAP:
