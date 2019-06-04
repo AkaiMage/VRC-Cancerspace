@@ -424,7 +424,7 @@
 			}
 			
 			float3 getBlendedColor(float3 b, float3 s, int mode) {
-				switch (mode) {
+				UNITY_BRANCH switch (mode) {
 					case BLENDMODE_MULTIPLY:
 						return b * s;
 					case BLENDMODE_SCREEN:
@@ -455,10 +455,10 @@
 						return softLight(b, s);
 					case BLENDMODE_EXCLUSION:
 						return b + s - 2 * b * s;
+					default:
+						// should never reach here
+						return 0;
 				}
-				
-				// should never reach here
-				return 0;
 			}
 			
 			float3 blend(float3 b, float3 s, int mode, fixed amount) {
@@ -474,15 +474,16 @@
 			}
 			
 			fixed calculateEffectAmplitudeFromFalloff(float dist) {
-				switch (_FalloffCurve) {
+				UNITY_BRANCH switch (_FalloffCurve) {
 					case FALLOFF_CURVE_SHARP:
 						return 1 - step(_MaxFalloff, dist);
 					case FALLOFF_CURVE_LINEAR:
 						return 1 - lerpstep(_MinFalloff, _MaxFalloff, dist);
 					case FALLOFF_CURVE_SMOOTH:
 						return 1 - smoothstep(_MinFalloff, _MaxFalloff, dist);
+					default:
+						return 1;
 				}
-				return 1;
 			}
 			
 			v2f vert (appdata v) {
