@@ -23,6 +23,7 @@ Please use responsibly. :^)
 - Screen movement, including rotation, scaling, and translation. All movements can be split by RGB channel.
 - Stencil testing support
 - Mirror-specific settings
+- Platform / eye discrimination, in case you wanted that for some reason.
 - Effect masking
 - Can be exported automatically to a different render queue, allowing multiple Cancerspace effects to be stacked on top of each other.
 - Randomizer button so music-synced animations are as easy to make as playing a rhythm game.
