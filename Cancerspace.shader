@@ -737,7 +737,7 @@
 						
 						if (!_ScreenReprojection) rotationAngle = 0;
 						
-						float2 uv = lerp(sampleUV, shift + multiplier * (rotate(sampleUV - rotationOrigin, rotationAngle) + rotationOrigin), allAmp);
+						float2 uv = lerp(sampleUV, shift + multiplier * (rotate(sampleUV - rotationOrigin, rotationAngle) + rotationOrigin - .5) + .5, allAmp);
 						
 						switch (_ScreenBoundaryHandling) {
 							case BOUNDARYMODE_CLAMP:
