@@ -98,6 +98,7 @@
 		
 		_InversionAmount ("Inversion Amount", Range(0,1)) = 0
 		[HDR] _Color ("Screen Color", Color) = (1,1,1,1)
+		_ScreenColorBlendMode ("Screen Color Blend Mode", Int) = 0
 		
 		[Toggle(_)] _Burn ("Color Burning (No Bloom)", Int) = 0
 		_BurnLow ("Color Burn Low", Range(-5, 5)) = 0
@@ -284,6 +285,7 @@
 			
 			float4 _OverlayColor;
 			float4 _Color;
+			int _ScreenColorBlendMode;
 			
 			float _XShake, _YShake;
 			float _XShakeSpeed, _YShakeSpeed;
@@ -777,7 +779,7 @@
 				finalScreenColor = blend(finalScreenColor, color.rgb, _BlendMode, _BlendAmount * color.a * overlayMask * allAmp);
 				
 				float overallMask = _OverallEffectMaskOpacity * tex2Dlod(_OverallEffectMask, float4(.5+TRANSFORM_TEX((screenSpaceOverlayUV-.5), _OverallEffectMask), 0, 0)).r;
-				finalScreenColor *= lerp(1, _Color.rgb, allAmp);
+				finalScreenColor = blend(finalScreenColor, _Color.rgb, _ScreenColorBlendMode, allAmp);
 				float overallMaskFalloff = allAmp;
 				if (_OverallEffectMaskBlendMode == BLENDMODE_NORMAL)  overallMaskFalloff = 1 - step(_MaxFalloff, effectDistance);
 				finalScreenColor = blend(tex2D(_Garb, i.projPos.xy / i.projPos.w).rgb, finalScreenColor, _OverallEffectMaskBlendMode, overallMask * overallMaskFalloff);

@@ -157,6 +157,7 @@ public class CancerspaceInspector : ShaderGUI {
 	
 	protected CSProperty screenInversion;
 	protected CSProperty screenColor;
+	protected CSProperty screenColorBlendMode;
 	
 	protected CSProperty colorBurningToggle;
 	protected CSProperty colorBurningLow;
@@ -299,6 +300,7 @@ public class CancerspaceInspector : ShaderGUI {
 		screenValueMultiply = FindProperty("_ValueMultiply", props);
 		screenInversion = FindProperty("_InversionAmount", props);
 		screenColor = FindProperty("_Color", props);
+		screenColorBlendMode = FindProperty("_ScreenColorBlendMode", props);
 		
 		colorBurningToggle = FindProperty("_Burn", props);
 		colorBurningLow = FindProperty("_BurnLow", props);
@@ -465,6 +467,7 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayVec3WithSliderMode(me, Styles.hsvMultiplyText, screenHueMultiply, screenSaturationMultiply, screenValueMultiply);
 				DisplayFloatRangeProperty(me, screenInversion);
 				DisplayColorProperty(me, screenColor);
+				BlendModePopup(me, screenColorBlendMode);
 				DisplayRegularProperty(me, colorBurningToggle);
 				if (colorBurningToggle.prop.floatValue == 1) {
 					DisplayFloatRangeProperty(me, colorBurningLow);
