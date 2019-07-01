@@ -194,6 +194,8 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty overallMask;
 	protected CSProperty overallMaskOpacity;
 	protected CSProperty overallMaskBlendMode;
+	protected CSProperty overallAmpMask;
+	protected CSProperty overallAmpMaskOpacity;
 	
 	protected CSProperty eyeSelector;
 	protected CSProperty platformSelector;
@@ -344,6 +346,8 @@ public class CancerspaceInspector : ShaderGUI {
 		overallMask = FindProperty("_OverallEffectMask", props);
 		overallMaskOpacity = FindProperty("_OverallEffectMaskOpacity", props);
 		overallMaskBlendMode = FindProperty("_OverallEffectMaskBlendMode", props);
+		overallAmpMask = FindProperty("_OverallAmplitudeMask", props);
+		overallAmpMaskOpacity = FindProperty("_OverallAmplitudeMaskOpacity", props);
 		
 		mirrorReflectionMode = FindProperty("_MirrorMode", props);
 		eyeSelector = FindProperty("_EyeSelector", props);
@@ -550,6 +554,9 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayRegularProperty(me, overallMask);
 				DisplayFloatRangeProperty(me, overallMaskOpacity);
 				BlendModePopup(me, overallMaskBlendMode);
+
+				DisplayRegularProperty(me, overallAmpMask);
+				DisplayFloatRangeProperty(me, overallAmpMaskOpacity);
 			}),
 			
 			new CSCategory(Styles.miscSettingsTitle, defaultStyle, me => {
