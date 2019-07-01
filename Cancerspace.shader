@@ -13,7 +13,7 @@
 		_StencilReadMask ("Read Mask", Int) = 255
 		_StencilWriteMask ("Write Mask", Int) = 255
 		
-		[Enum(Flat, 0, Sphere, 1)] _ProjectionType ("Projection Type", Int) = 0
+		[Enum(Flat, 0, Sphere, 1, Mesh, 2)] _ProjectionType ("Projection Type", Int) = 0
 		
 		_Puffiness ("Puffiness", Float) = 0
 		_ObjectPositionX ("Object Position X", Float) = 0
@@ -141,6 +141,8 @@
 		_OverlayMaskOpacity ("Opacity", Range(0, 1)) = 1
 		_OverallEffectMask ("Entire Effect Mask", 2D) = "white" {}
 		_OverallEffectMaskOpacity ("Opacity", Range(0, 1)) = 1
+		_OverallAmplitudeMask ("Entire Effect Amplitude Mask", 2D) = "white" {}
+		_OverallAmplitudeMaskOpacity ("Opacity", Range(0, 1)) = 1
 		_OverallEffectMaskBlendMode ("Blend Mode", Int) = 9
 		
 		[Enum(Normal, 0, No Reflection, 1, Render Only In Mirror, 2)] _MirrorMode ("Mirror Reflectance", Int) = 0
@@ -174,6 +176,7 @@
 			
 			#define PROJECTION_FLAT 0
 			#define PROJECTION_SPHERE 1
+			#define PROJECTION_MESH 2
 			
 			#define BLENDMODE_MULTIPLY 0
 			#define BLENDMODE_SCREEN 1
@@ -244,6 +247,7 @@
 			struct appdata {
 				float4 vertex : POSITION;
 				float3 normal : NORMAL;
+				float2 uv : TEXCOORD0;
 			};
 
 			struct v2f {
@@ -252,6 +256,7 @@
 				float4 projPos : TEXCOORD1;
 				float4 posOrigin : TEXCOORD2;
 				float3 cubemapSampler : TEXCOORD3;
+				float2 uv : TEXCOORD4;
 			};
 			
 			int _ProjectionType;
@@ -356,6 +361,9 @@
 			float4 _OverallEffectMask_ST;
 			float _OverallEffectMaskOpacity;
 			int _OverallEffectMaskBlendMode;
+			sampler2D _OverallAmplitudeMask;
+			float4 _OverallAmplitudeMask_ST;
+			float _OverallAmplitudeMaskOpacity;
 			
 			int _EyeSelector;
 			int _PlatformSelector;
@@ -575,13 +583,13 @@
 				o.cubemapSampler.yz = mul(createRotationMatrix(_OverlayCubemapRotationX + _Time.y * _OverlayCubemapSpeedX), o.cubemapSampler.yz);
 				o.cubemapSampler.xz = mul(createRotationMatrix(_OverlayCubemapRotationY + _Time.y * _OverlayCubemapSpeedY), o.cubemapSampler.xz);
 				o.cubemapSampler.xy = mul(createRotationMatrix(_OverlayCubemapRotationZ + _Time.y * _OverlayCubemapSpeedZ), o.cubemapSampler.xy);
+				o.uv = v.uv;
 				return o;
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {
 				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
 				float effectDistance = length(viewVec);
-				fixed allAmp = calculateEffectAmplitudeFromFalloff(effectDistance);
 				
 				float VRFix = 1;
 				#if defined(USING_STEREO_MATRICES)
@@ -599,7 +607,13 @@
 					case PROJECTION_SPHERE:
 						screenSpaceOverlayUV = computeSphereUV(i.posWorld);
 						break;
+					case PROJECTION_MESH:
+						screenSpaceOverlayUV = i.uv;
+						break;
 				}
+				
+				fixed4 amplitudeMaskContribution = tex2Dlod(_OverallAmplitudeMask, float4(screenSpaceOverlayUV, 0, 0));
+				fixed allAmp = calculateEffectAmplitudeFromFalloff(effectDistance) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity;
 				
 				float2 distortion = 0;
 				float2 distortionUV = screenSpaceOverlayUV - .5;
