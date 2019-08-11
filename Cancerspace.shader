@@ -58,9 +58,15 @@
 		_DistortionRotation ("Direction Rotation", Range(0, 360)) = 0
 		_BumpMapScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
 		_BumpMapScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
+		[Toggle(_)] _DistortFlipbook ("Flipbook", Int) = 0
+		_DistortFlipbookTotalFrames ("Total Frames", Int) = 0
+		_DistortFlipbookFPS ("Frames per second", Float) = 1
+		_DistortFlipbookStartFrame ("Start Frame", Int) = 0
+		_DistortFlipbookColumns ("Columns", Int) = 20
+		_DistortFlipbookRows ("Rows", Int) = 20
 		
-		[PowerSlider(2.0)]_XShake ("X Shake", Range(0, 1)) = 0
-		[PowerSlider(2.0)]_YShake ("Y Shake", Range(0, 1)) = 0
+		[PowerSlider(2.0)] _XShake ("X Shake", Range(0, 1)) = 0
+		[PowerSlider(2.0)] _YShake ("Y Shake", Range(0, 1)) = 0
 		_XShakeSpeed ("X Shake Speed", Range(0, 300)) = 200
 		_YShakeSpeed ("Y Shake Speed", Range(0, 300)) = 300
 		_ShakeAmplitude ("Shake Amplitude", Range(0, 2)) = 1
@@ -281,6 +287,12 @@
 			int _FlipbookTotalFrames;
 			float _FlipbookFPS;
 			
+			int _DistortFlipbook;
+			int _DistortFlipbookRows, _DistortFlipbookColumns;
+			int _DistortFlipbookStartFrame;
+			int _DistortFlipbookTotalFrames;
+			float _DistortFlipbookFPS;
+			
 			samplerCUBE _OverlayCubemap;
 			float _OverlayCubemapRotationX, _OverlayCubemapRotationY, _OverlayCubemapRotationZ;
 			float _OverlayCubemapSpeedX, _OverlayCubemapSpeedY, _OverlayCubemapSpeedZ;
@@ -342,12 +354,14 @@
 			
 			int _DistortionType, _DistortionTarget;
 			sampler2D _BumpMap;
+			float4 _BumpMap_TexelSize;
 			float4 _BumpMap_ST;
 			float _DistortionMapRotation;
 			float _DistortionAmplitude;
 			float _DistortionRotation;
 			float _BumpMapScrollSpeedX, _BumpMapScrollSpeedY;
 			sampler2D _MeltMap;
+			float4 _MeltMap_TexelSize;
 			float4 _MeltMap_ST;
 			float _MeltController, _MeltActivationScale;
 			
@@ -542,6 +556,46 @@
 				}
 			}
 			
+			float2 calculateUVsWithFlipbookParameters(float2 uv, float2 distortion, bool pixelated, bool flipbook, float4 texelSizes, float startFrame, float fps, float totalFrames, float2 cr, float uvRot, float2 uvScrollSpeed, float4 uvST) {
+				float currentFrame = 0;
+				float2 invCR = 1;
+				
+				float2 res = texelSizes.zw, invRes = texelSizes.xy;
+				
+				if (flipbook) {
+					currentFrame = floor(fmod(startFrame + _Time.y * fps, totalFrames));
+					invCR = 1 / cr;
+					res *= invCR;
+					invRes *= cr;
+				}
+				
+				if (pixelated) uv = pixelateSamples(res, invRes, uv);
+				
+				if (_DistortionTarget == DISTORT_TARGET_OVERLAY || _DistortionTarget == DISTORT_TARGET_BOTH) uv += distortion;
+				
+				uv -= .5;
+				uv = mul(createRotationMatrix(uvRot), uv);
+				uv = uv * uvST.xy + uvST.zw + .5;
+				
+				switch (_OverlayBoundaryHandling) {
+					case BOUNDARYMODE_CLAMP:
+						uv = saturate(uv);
+						break;
+					case BOUNDARYMODE_REPEAT:
+						uv = frac(uv + _Time.yy * uvScrollSpeed);
+						break;
+				}
+				
+				if (flipbook) {
+					float row = floor(currentFrame * invCR.x);
+					float2 offset = float2(currentFrame - row * cr.x, cr.y - row - 1);
+					
+					uv = frac((uv + offset) * invCR);
+				}
+				
+				return uv;
+			}
+			
 			v2f vert (appdata v) {
 				v2f o;
 				
@@ -616,16 +670,43 @@
 				fixed allAmp = calculateEffectAmplitudeFromFalloff(effectDistance) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity;
 				
 				float2 distortion = 0;
-				float2 distortionUV = screenSpaceOverlayUV - .5;
-				distortionUV = mul(createRotationMatrix(_DistortionMapRotation), distortionUV);
+				
 				
 				UNITY_BRANCH switch (_DistortionType) {
 					case DISTORT_NORMAL:
-						distortion = UnpackNormal(tex2Dlod(_BumpMap, float4(TRANSFORM_TEX((distortionUV + _Time.yy * _BumpMapScrollSpeed), _BumpMap) + .5, 0, 0))).xy * _DistortionAmplitude;
+						{
+							float2 distortionUV = calculateUVsWithFlipbookParameters(
+								screenSpaceOverlayUV,
+								0,
+								false,
+								_DistortFlipbook,
+								_BumpMap_TexelSize,
+								_DistortFlipbookStartFrame,
+								_DistortFlipbookFPS,
+								_DistortFlipbookTotalFrames,
+								float2(_DistortFlipbookColumns, _DistortFlipbookRows),
+								_DistortionMapRotation,
+								_BumpMapScrollSpeed,
+								_BumpMap_ST);
+							distortion = UnpackNormal(tex2Dlod(_BumpMap, float4(distortionUV, 0, 0))).xy * _DistortionAmplitude;
+						}
 						break;
 					case DISTORT_MELT:
 						{
-							float4 meltVal = tex2Dlod(_MeltMap, float4(TRANSFORM_TEX(distortionUV, _MeltMap) + .5, 0, 0));
+							float2 distortionUV = calculateUVsWithFlipbookParameters(
+								screenSpaceOverlayUV,
+								0,
+								false,
+								_DistortFlipbook,
+								_MeltMap_TexelSize,
+								_DistortFlipbookStartFrame,
+								_DistortFlipbookFPS,
+								_DistortFlipbookTotalFrames,
+								float2(_DistortFlipbookColumns, _DistortFlipbookRows),
+								_DistortionMapRotation,
+								0,
+								_MeltMap_ST);
+							float4 meltVal = tex2Dlod(_MeltMap, float4(distortionUV, 0, 0));
 							float2 motionVector = normalize(2 * meltVal.rg - 1);
 							float activationTime = meltVal.b * _MeltActivationScale;
 							float speed = meltVal.a * _DistortionAmplitude;
@@ -645,45 +726,19 @@
 					case OVERLAY_IMAGE:
 					case OVERLAY_FLIPBOOK:
 						{
-							bool flipbook = _OverlayImageType == OVERLAY_FLIPBOOK;
-							float currentFrame = 0;
-							float2 invCR = 1;
-							
-							float2 uv = screenSpaceOverlayUV;
-							
-							float2 res = _MainTex_TexelSize.zw, invRes = _MainTex_TexelSize.xy;
-							
-							if (flipbook) {
-								currentFrame = floor(fmod(_FlipbookStartFrame + _Time.y * _FlipbookFPS, _FlipbookTotalFrames));
-								float2 cr = float2(_FlipbookColumns, _FlipbookRows);
-								invCR = 1 / cr;
-								res *= invCR;
-								invRes *= cr;
-							}
-							
-							if (_PixelatedSampling) uv = pixelateSamples(res, invRes, uv);
-							
-							if (_DistortionTarget == DISTORT_TARGET_OVERLAY || _DistortionTarget == DISTORT_TARGET_BOTH) uv += distortion;
-							
-							uv -= .5;
-							uv = mul(createRotationMatrix(_MainTexRotation), uv);
-							uv = TRANSFORM_TEX(uv, _MainTex) + .5;
-							
-							switch (_OverlayBoundaryHandling) {
-								case BOUNDARYMODE_CLAMP:
-									uv = saturate(uv);
-									break;
-								case BOUNDARYMODE_REPEAT:
-									uv = frac(uv + _Time.yy * _MainTexScrollSpeed);
-									break;
-							}
-							
-							if (flipbook) {
-								float row = floor(currentFrame * invCR.x);
-								float2 offset = float2(currentFrame - row * _FlipbookColumns, _FlipbookRows - row - 1);
-								
-								uv = frac((uv + offset) * invCR);
-							}
+							float2 uv = calculateUVsWithFlipbookParameters(
+								screenSpaceOverlayUV, 
+								true, 
+								_PixelatedSampling,
+								_OverlayImageType == OVERLAY_FLIPBOOK, 
+								_MainTex_TexelSize, 
+								_FlipbookStartFrame, 
+								_FlipbookFPS, 
+								_FlipbookTotalFrames, 
+								float2(_FlipbookColumns, _FlipbookRows), 
+								_MainTexRotation, 
+								_MainTexScrollSpeed, 
+								_MainTex_ST);
 							
 							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
 								color = 0;
