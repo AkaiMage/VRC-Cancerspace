@@ -14,7 +14,7 @@ Please use responsibly. :^)
 - Falloff
 - Wave distortion
 - Melt distortion
-- Normal-mapped distortion
+- Normal-mapped distortion, with support for spritesheets
 - Blur
 - Image overlays, with support for spritesheets
 - Cubemap overlays
