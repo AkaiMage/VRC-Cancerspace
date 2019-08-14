@@ -438,7 +438,6 @@ public class CancerspaceInspector : ShaderGUI {
 					DisplayIntField(me, distortFlipbookCols);
 					DisplayFloatProperty(me, distortFlipbookFPS);
 				}
-				DisplayRegularProperty(me, distortionMask);
 				
 			}),
 			
