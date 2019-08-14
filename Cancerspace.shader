@@ -54,7 +54,7 @@
 		_DistortionMapRotation ("Map Rotation", Range(0, 360)) = 0
 		_MeltActivationScale ("Activation Time Scale", Range(0, 3)) = 1
 		_MeltController ("Controller", Range(0, 3)) = 0
-		_DistortionAmplitude ("Amplitude", Range(-1, 1)) = 0.1
+		_DistortionAmplitude ("Amplitude", Range(-1, 1)) = 0.0
 		_DistortionRotation ("Direction Rotation", Range(0, 360)) = 0
 		_BumpMapScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
 		_BumpMapScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
