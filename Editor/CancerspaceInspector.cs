@@ -169,9 +169,9 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA;
 	protected CSProperty screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA;
 	protected CSProperty screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA;
-	protected CSProperty screenXRotationOriginR, screenXRotationOriginG, screenXRotationOriginB, screenXRotationOriginA;
-	protected CSProperty screenYRotationOriginR, screenYRotationOriginG, screenYRotationOriginB, screenYRotationOriginA;
-	protected CSProperty screenRotationAngleR, screenRotationAngleG, screenRotationAngleB, screenRotationAngleA;
+	protected CSProperty screenXRotationOrigin;
+	protected CSProperty screenYRotationOrigin;
+	protected CSProperty screenRotationAngle;
 	
 	protected CSProperty mirrorReflectionMode;
 	
@@ -186,6 +186,9 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty distortionRotation;
 	protected CSProperty distortionScrollSpeedX;
 	protected CSProperty distortionScrollSpeedY;
+	protected CSProperty distortFlipbook;
+	protected CSProperty distortFlipbookRows, distortFlipbookCols;
+	protected CSProperty distortFlipbookStart, distortFlipbookFrames, distortFlipbookFPS;
 	
 	protected CSProperty distortionMask;
 	protected CSProperty distortionMaskOpacity;
@@ -264,6 +267,13 @@ public class CancerspaceInspector : ShaderGUI {
 		meltController = FindProperty("_MeltController", props);
 		meltTimeScale = FindProperty("_MeltActivationScale", props);
 		distortionMask = FindProperty("_DistortionMask", props);
+		distortFlipbook = FindProperty("_DistortFlipbook", props);
+		distortFlipbookStart = FindProperty("_DistortFlipbookStartFrame", props);
+		distortFlipbookFrames = FindProperty("_DistortFlipbookTotalFrames", props);
+		distortFlipbookFPS = FindProperty("_DistortFlipbookFPS", props);
+		distortFlipbookRows = FindProperty("_DistortFlipbookRows", props);
+		distortFlipbookCols = FindProperty("_DistortFlipbookColumns", props);
+		
 
 		shakeXAmount = FindProperty("_XShake", props);
 		shakeYAmount = FindProperty("_YShake", props);
@@ -326,18 +336,7 @@ public class CancerspaceInspector : ShaderGUI {
 		screenYMultiplierG = FindProperty("_ScreenYMultiplierG", props);
 		screenYMultiplierB = FindProperty("_ScreenYMultiplierB", props);
 		screenYMultiplierA = FindProperty("_ScreenYMultiplierA", props);
-		screenXRotationOriginR = FindProperty("_ScreenRotationOriginXR", props);
-		screenXRotationOriginG = FindProperty("_ScreenRotationOriginXG", props);
-		screenXRotationOriginB = FindProperty("_ScreenRotationOriginXB", props);
-		screenXRotationOriginA = FindProperty("_ScreenRotationOriginXA", props);
-		screenYRotationOriginR = FindProperty("_ScreenRotationOriginYR", props);
-		screenYRotationOriginG = FindProperty("_ScreenRotationOriginYG", props);
-		screenYRotationOriginB = FindProperty("_ScreenRotationOriginYB", props);
-		screenYRotationOriginA = FindProperty("_ScreenRotationOriginYA", props);
-		screenRotationAngleR = FindProperty("_ScreenRotationAngleR", props);
-		screenRotationAngleG = FindProperty("_ScreenRotationAngleG", props);
-		screenRotationAngleB = FindProperty("_ScreenRotationAngleB", props);
-		screenRotationAngleA = FindProperty("_ScreenRotationAngleA", props);
+		screenRotationAngle = FindProperty("_ScreenRotationAngle", props);
 		
 		distortionMask = FindProperty("_DistortionMask", props);
 		distortionMaskOpacity = FindProperty("_DistortionMaskOpacity", props);
@@ -420,7 +419,14 @@ public class CancerspaceInspector : ShaderGUI {
 						DisplayFloatWithSliderMode(me, meltTimeScale);
 						break;
 				}
-				DisplayRegularProperty(me, distortionMask);
+				DisplayRegularProperty(me, distortFlipbook);
+				if (distortFlipbook.prop.floatValue != 0) {
+					DisplayIntField(me, distortFlipbookFrames);
+					DisplayIntField(me, distortFlipbookStart);
+					DisplayIntField(me, distortFlipbookRows);
+					DisplayIntField(me, distortFlipbookCols);
+					DisplayFloatProperty(me, distortFlipbookFPS);
+				}
 				
 			}),
 			
@@ -507,24 +513,7 @@ public class CancerspaceInspector : ShaderGUI {
 					DisplayVec4Field(me, Styles.screenXMultiplierText, screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA);
 					DisplayVec4Field(me, Styles.screenYMultiplierText, screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA);
 				}
-				if (screenReprojection.prop.floatValue > .5) {
-					if (sliderMode) {
-						DisplayFloatRangeProperty(me, screenXRotationOriginA);
-						DisplayFloatRangeProperty(me, screenYRotationOriginA);
-						DisplayFloatRangeProperty(me, screenRotationAngleA);DisplayFloatRangeProperty(me, screenXRotationOriginR);
-						DisplayFloatRangeProperty(me, screenYRotationOriginR);
-						DisplayFloatRangeProperty(me, screenRotationAngleR);DisplayFloatRangeProperty(me, screenXRotationOriginG);
-						DisplayFloatRangeProperty(me, screenYRotationOriginG);
-						DisplayFloatRangeProperty(me, screenRotationAngleG);DisplayFloatRangeProperty(me, screenXRotationOriginB);
-						DisplayFloatRangeProperty(me, screenYRotationOriginB);
-						DisplayFloatRangeProperty(me, screenRotationAngleB);
-					} else {
-						DisplayVec4Field(me, Styles.screenXRotationOriginText, screenXRotationOriginR, screenXRotationOriginG, screenXRotationOriginB, screenXRotationOriginA);
-						DisplayVec4Field(me, Styles.screenYRotationOriginText, screenYRotationOriginR, screenYRotationOriginG, screenYRotationOriginB, screenYRotationOriginA);
-						DisplayVec4Field(me, Styles.screenRotationAngleText, screenRotationAngleR, screenRotationAngleG, screenRotationAngleB, screenRotationAngleA);
-					}
-				}
-				
+				DisplayFloatRangeProperty(me, screenRotationAngle);
 			}),
 			
 			new CSCategory(Styles.targetObjectSettingsTitle, defaultStyle, me => {

@@ -128,18 +128,7 @@
 		_ScreenYMultiplierG ("Screen Y Multiplier (Green)", Range(-5, 5)) = 1
 		_ScreenYMultiplierB ("Screen Y Multiplier (Blue)", Range(-5, 5)) = 1
 		_ScreenYMultiplierA ("Screen Y Multiplier (All)", Range(-5, 5)) = 1
-		_ScreenRotationOriginXR ("Screen Rotation Origin X (Red)", Range(-1, 1)) = 0
-		_ScreenRotationOriginXG ("Screen Rotation Origin X (Green)", Range(-1, 1)) = 0
-		_ScreenRotationOriginXB ("Screen Rotation Origin X (Blue)", Range(-1, 1)) = 0
-		_ScreenRotationOriginXA ("Screen Rotation Origin X (All)", Range(-1, 1)) = 0
-		_ScreenRotationOriginYR ("Screen Rotation Origin Y (Red)", Range(-1, 1)) = 0
-		_ScreenRotationOriginYG ("Screen Rotation Origin Y (Green)", Range(-1, 1)) = 0
-		_ScreenRotationOriginYB ("Screen Rotation Origin Y (Blue)", Range(-1, 1)) = 0
-		_ScreenRotationOriginYA ("Screen Rotation Origin Y (All)", Range(-1, 1)) = 0
-		_ScreenRotationAngleR ("Screen Rotation Angle (Red)", Range(-360, 360)) = 0
-		_ScreenRotationAngleG ("Screen Rotation Angle (Green)", Range(-360, 360)) = 0
-		_ScreenRotationAngleB ("Screen Rotation Angle (Blue)", Range(-360, 360)) = 0
-		_ScreenRotationAngleA ("Screen Rotation Angle (All)", Range(-360, 360)) = 0
+		_ScreenRotationAngle ("Screen Rotation Angle", Range(-360, 360)) = 0
 		
 		_DistortionMask ("Distortion Mask", 2D) = "white" {}
 		_DistortionMaskOpacity ("Opacity", Range(0, 1)) = 1
@@ -243,9 +232,6 @@
 			#define _ObjectScale (float3(_ObjectScaleX, _ObjectScaleY, _ObjectScaleZ) * _ObjectScaleA)
 			#define _MainTexScrollSpeed float2(_MainTexScrollSpeedX, _MainTexScrollSpeedY)
 			#define _BumpMapScrollSpeed float2(_BumpMapScrollSpeedX, _BumpMapScrollSpeedY)
-			#define _ScreenRotationOriginX (float3(_ScreenRotationOriginXR, _ScreenRotationOriginXG, _ScreenRotationOriginXB) + _ScreenRotationOriginXA)
-			#define _ScreenRotationOriginY (float3(_ScreenRotationOriginYR, _ScreenRotationOriginYG, _ScreenRotationOriginYB) + _ScreenRotationOriginYA)
-			#define _ScreenRotationAngle (float3(_ScreenRotationAngleR, _ScreenRotationAngleG, _ScreenRotationAngleB) + _ScreenRotationAngleA)
 			
 			#include "UnityCG.cginc"
 			#include "AutoLight.cginc"
@@ -339,10 +325,7 @@
 			float _ScreenXMultiplierR, _ScreenXMultiplierG, _ScreenXMultiplierB, _ScreenXMultiplierA;
 			float _ScreenYMultiplierR, _ScreenYMultiplierG, _ScreenYMultiplierB, _ScreenYMultiplierA;
 			
-			float _ScreenRotationOriginXR, _ScreenRotationOriginXG, _ScreenRotationOriginXB, _ScreenRotationOriginXA;
-			float _ScreenRotationOriginYR, _ScreenRotationOriginYG, _ScreenRotationOriginYB, _ScreenRotationOriginYA;
-			
-			float _ScreenRotationAngleR, _ScreenRotationAngleG, _ScreenRotationAngleB, _ScreenRotationAngleA;
+			float _ScreenRotationAngle;
 			
 			int _ScreenBoundaryHandling;
 			
@@ -411,6 +394,15 @@
 			
 			float2 rotate(float2 uv, float angle) {
 				return mul(createRotationMatrix(angle), uv);
+			}
+			
+			float3 rotateAxis(float3 p, float3 k, float theta) {
+				// FIXME: this normalize call might not be necessary.
+				k = normalize(k);
+				
+				float s, c;
+				sincos(theta * (UNITY_PI / 180), s, c);
+				return p * c + cross(k, p) * s + k * dot(k, p) * (1 - c);
 			}
 			
 			float2 computeScreenSpaceOverlayUV(float3 worldSpacePos) {
@@ -628,9 +620,17 @@
 				
 				v.vertex.xyz += _ObjectPosition;
 				
-				o.pos = UnityObjectToClipPos(v.vertex);
 				o.posWorld = mul(unity_ObjectToWorld, v.vertex).xyz;
-				o.projPos = ComputeScreenPos(o.pos);
+				
+				float4 viewPos = float4(UnityWorldToViewPos(float4(o.posWorld, 1)), 1);
+				
+				UNITY_BRANCH if (!_ScreenReprojection) {
+					viewPos.xy = rotate(viewPos.xy, _ScreenRotationAngle);
+					o.posWorld = rotateAxis(o.posWorld, UNITY_MATRIX_IT_MV[2].xyz, _ScreenRotationAngle);
+				}
+				
+				o.pos = UnityViewToClipPos(viewPos);
+				o.projPos = ComputeScreenPos(UnityObjectToClipPos(v.vertex));
 				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
 				o.posOrigin.xy /= o.posOrigin.w;
 				o.cubemapSampler = o.posWorld - _WorldSpaceCameraPos;
@@ -648,8 +648,6 @@
 				float VRFix = 1;
 				#if defined(USING_STEREO_MATRICES)
 				VRFix = .5;
-				#else
-				_ScreenReprojection = 0;
 				#endif
 				
 				float2 screenSpaceOverlayUV = 0;
@@ -801,12 +799,12 @@
 						float2 multiplier = float2(_ScreenXMultiplier[j] * _ScreenXMultiplier.a, _ScreenYMultiplier[j] * _ScreenYMultiplier.a);
 						float2 shift = float2(_ScreenXOffset[j] + _ScreenXOffset.a, _ScreenYOffset[j] + _ScreenYOffset.a);
 						shift.x *= VRFix;
-						float rotationAngle = _ScreenRotationAngle[j];
-						float2 rotationOrigin = float2(_ScreenRotationOriginX[j], _ScreenRotationOriginY[j]);
 						
-						if (!_ScreenReprojection) rotationAngle = 0;
-						
-						float2 uv = lerp(sampleUV, shift + multiplier * (rotate(sampleUV - rotationOrigin, rotationAngle) + rotationOrigin - .5) + .5, allAmp);
+						float2 uv = sampleUV - .5;
+						UNITY_BRANCH if (_ScreenReprojection) {
+							uv = rotate(uv, _ScreenRotationAngle);
+						}
+						uv = lerp(sampleUV, shift + multiplier * uv + .5, allAmp);
 						
 						switch (_ScreenBoundaryHandling) {
 							case BOUNDARYMODE_CLAMP:
@@ -824,7 +822,7 @@
 						if (_ScreenBoundaryHandling == BOUNDARYMODE_OVERLAY && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
 							col[j] = color[j];
 						} else {
-							if (_ScreenReprojection) {
+							UNITY_BRANCH if (_ScreenReprojection) {
 								col[j] = tex2D(_Garb, uv * float2(VRFix, 1))[j];
 							} else {
 								col[j] = tex2D(_Garb, uv)[j];
