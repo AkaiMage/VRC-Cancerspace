@@ -588,6 +588,31 @@
 				return uv;
 			}
 			
+			float2 calculateScreenUVs(float3 posWorld, float2 meshUV) {
+				float2 screenSpaceOverlayUV = 0;
+				
+				UNITY_BRANCH switch (_ProjectionType) {
+					case PROJECTION_FLAT:
+						screenSpaceOverlayUV = computeScreenSpaceOverlayUV(posWorld);
+						break;
+					case PROJECTION_SPHERE:
+						screenSpaceOverlayUV = computeSphereUV(posWorld);
+						break;
+					case PROJECTION_MESH:
+						screenSpaceOverlayUV = meshUV;
+						break;
+				}
+				
+				return screenSpaceOverlayUV;
+			}
+			
+			fixed calculateFalloffAmplitude(float2 screenUV) {
+				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
+				float effectDistance = length(viewVec);
+				fixed4 amplitudeMaskContribution = tex2Dlod(_OverallAmplitudeMask, float4(screenUV, 0, 0));
+				return calculateEffectAmplitudeFromFalloff(effectDistance) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity;
+			}
+			
 			v2f vert (appdata v) {
 				v2f o;
 				
@@ -625,8 +650,11 @@
 				float4 viewPos = float4(UnityWorldToViewPos(float4(o.posWorld, 1)), 1);
 				
 				UNITY_BRANCH if (!_ScreenReprojection) {
-					viewPos.xy = rotate(viewPos.xy, _ScreenRotationAngle);
-					o.posWorld = rotateAxis(o.posWorld, UNITY_MATRIX_IT_MV[2].xyz, _ScreenRotationAngle);
+					float2 screenUV = calculateScreenUVs(o.posWorld, v.uv);
+					fixed allAmp = calculateFalloffAmplitude(screenUV);
+					float rotation = allAmp * _ScreenRotationAngle;
+					viewPos.xy = rotate(viewPos.xy, rotation);
+					o.posWorld = rotateAxis(o.posWorld, UNITY_MATRIX_IT_MV[2].xyz, rotation);
 				}
 				
 				o.pos = UnityViewToClipPos(viewPos);
@@ -650,22 +678,8 @@
 				VRFix = .5;
 				#endif
 				
-				float2 screenSpaceOverlayUV = 0;
-				
-				UNITY_BRANCH switch (_ProjectionType) {
-					case PROJECTION_FLAT:
-						screenSpaceOverlayUV = computeScreenSpaceOverlayUV(i.posWorld);
-						break;
-					case PROJECTION_SPHERE:
-						screenSpaceOverlayUV = computeSphereUV(i.posWorld);
-						break;
-					case PROJECTION_MESH:
-						screenSpaceOverlayUV = i.uv;
-						break;
-				}
-				
-				fixed4 amplitudeMaskContribution = tex2Dlod(_OverallAmplitudeMask, float4(screenSpaceOverlayUV, 0, 0));
-				fixed allAmp = calculateEffectAmplitudeFromFalloff(effectDistance) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity;
+				float2 screenSpaceOverlayUV = calculateScreenUVs(i.posWorld, i.uv);
+				fixed allAmp = calculateFalloffAmplitude(screenSpaceOverlayUV);
 				
 				float2 distortion = 0;
 				
@@ -802,9 +816,9 @@
 						
 						float2 uv = sampleUV - .5;
 						UNITY_BRANCH if (_ScreenReprojection) {
-							uv = rotate(uv, _ScreenRotationAngle);
+							uv = rotate(uv, _ScreenRotationAngle * allAmp);
 						}
-						uv = lerp(sampleUV, shift + multiplier * uv + .5, allAmp);
+						uv = lerp(uv, shift + multiplier * uv, allAmp) + .5;
 						
 						switch (_ScreenBoundaryHandling) {
 							case BOUNDARYMODE_CLAMP:
