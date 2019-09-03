@@ -53,6 +53,7 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string screenYMultiplierText = "Screen Y Multiplier (RGB)";
 		public static string screenXRotationOriginText = "Screen Rotation Origin X (RGB)";
 		public static string screenYRotationOriginText = "Screen Rotation Origin Y (RGB)";
+		public static string projectionRotationText = "Rotation";
 		public static string screenRotationAngleText = "Screen Rotation Angle (RGB)";
 		public static string stencilTitle = "Stencil Testing";
 		public static string maskingTitle = "Masking";
@@ -115,6 +116,10 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty falloffCurve;
 	protected CSProperty falloffMinDistance;
 	protected CSProperty falloffMaxDistance;
+	protected CSProperty falloffDepth;
+	protected CSProperty falloffDepthCurve;
+	protected CSProperty falloffDepthMinDistance;
+	protected CSProperty falloffDepthMaxDistance;
 	
 	protected CSProperty blurRadius;
 	protected CSProperty blurSampling;
@@ -203,6 +208,7 @@ public class CancerspaceInspector : ShaderGUI {
 	protected CSProperty eyeSelector;
 	protected CSProperty platformSelector;
 	protected CSProperty projectionType;
+	protected CSProperty projectionRotX, projectionRotY, projectionRotZ;
 	
 	protected int customRenderQueue;
 	protected bool initialized;
@@ -240,6 +246,10 @@ public class CancerspaceInspector : ShaderGUI {
 		falloffCurve = FindProperty("_FalloffCurve", props);
 		falloffMinDistance = FindProperty("_MinFalloff", props);
 		falloffMaxDistance = FindProperty("_MaxFalloff", props);
+		falloffDepth = FindProperty("_DepthFalloff", props);
+		falloffDepthCurve = FindProperty("_DepthFalloffCurve", props);
+		falloffDepthMinDistance = FindProperty("_DepthMinFalloff", props);
+		falloffDepthMaxDistance = FindProperty("_DepthMaxFalloff", props);
 		
 		blurRadius = FindProperty("_BlurRadius", props);
 		blurSampling = FindProperty("_BlurSampling", props);
@@ -352,6 +362,9 @@ public class CancerspaceInspector : ShaderGUI {
 		eyeSelector = FindProperty("_EyeSelector", props);
 		platformSelector = FindProperty("_PlatformSelector", props);
 		projectionType = FindProperty("_ProjectionType", props);
+		projectionRotX = FindProperty("_ProjectionRotX", props);
+		projectionRotY = FindProperty("_ProjectionRotY", props);
+		projectionRotZ = FindProperty("_ProjectionRotZ", props);
 	}
 	
 	public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties) {
@@ -373,6 +386,12 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayRegularProperty(me, falloffCurve);
 				if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, falloffMinDistance);
 				DisplayRegularProperty(me, falloffMaxDistance);
+				DisplayRegularProperty(me, falloffDepth);
+				if (falloffDepth.prop.floatValue > .5) {
+					DisplayRegularProperty(me, falloffDepthCurve);
+					if (falloffDepthCurve.prop.floatValue > .5) DisplayRegularProperty(me, falloffDepthMinDistance);
+					DisplayRegularProperty(me, falloffDepthMaxDistance);
+				}
 			}),
 			
 			new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {
@@ -544,6 +563,8 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayFloatRangeProperty(me, overallMaskOpacity);
 				BlendModePopup(me, overallMaskBlendMode);
 
+				EditorGUILayout.Space();
+				
 				DisplayRegularProperty(me, overallAmpMask);
 				DisplayFloatRangeProperty(me, overallAmpMaskOpacity);
 			}),
@@ -557,6 +578,9 @@ public class CancerspaceInspector : ShaderGUI {
 				DisplayRegularProperty(me, eyeSelector);
 				DisplayRegularProperty(me, platformSelector);
 				DisplayRegularProperty(me, projectionType);
+				if (projectionType.prop.floatValue != 2) {
+					DisplayVec3WithSliderMode(me, Styles.projectionRotationText, projectionRotX, projectionRotY, projectionRotZ);
+				}
 			}),
 			
 			new CSCategory(Styles.renderQueueExportTitle, defaultStyle, me => {

@@ -13,7 +13,10 @@
 		_StencilReadMask ("Read Mask", Int) = 255
 		_StencilWriteMask ("Write Mask", Int) = 255
 		
-		[Enum(Flat, 0, Sphere, 1, Mesh, 2)] _ProjectionType ("Projection Type", Int) = 0
+		[Enum(Flat, 0, Sphere, 1, Mesh, 2, Walls, 3)] _ProjectionType ("Projection Type", Int) = 0
+		_ProjectionRotX ("Rotation X", Range(-360, 360)) = 0
+		_ProjectionRotY ("Rotation Y", Range(-360, 360)) = 0
+		_ProjectionRotZ ("Rotation Z", Range(-360, 360)) = 0
 		
 		_Puffiness ("Puffiness", Float) = 0
 		_ObjectPositionX ("Object Position X", Float) = 0
@@ -32,6 +35,10 @@
 		_MinFalloff ("Min Falloff", Float) = 30
 		_MaxFalloff ("Max Falloff", Float) = 60
 		[Enum(Sharp, 0, Linear, 1, Smooth, 2)] _FalloffCurve ("Curve", Int) = 0
+		[Toggle(_)] _DepthFalloff ("Camera Depth Falloff", Int) = 0
+		_DepthMinFalloff ("Min Distance", Float) = 30
+		_DepthMaxFalloff ("Max Distance", Float) = 60
+		[Enum(Sharp, 0, Linear, 1, Smooth, 2)] _DepthFalloffCurve ("Curve", Int) = 2
 		
 		_BlurRadius ("Blur Radius", Range(0, 50)) = 0
 		_BlurSampling ("Blur Sampling", Range(1, 5)) = 1
@@ -52,7 +59,7 @@
 		_BumpMap ("Distortion Map (Normal)", 2D) = "bump" {}
 		_MeltMap ("Melt Map", 2D) = "white" {}
 		_DistortionMapRotation ("Map Rotation", Range(0, 360)) = 0
-		_MeltActivationScale ("Activation Time Scale", Range(0, 3)) = 1
+		_MeltActivationScale ("Activation _Time Scale", Range(0, 3)) = 1
 		_MeltController ("Controller", Range(0, 3)) = 0
 		_DistortionAmplitude ("Amplitude", Range(-1, 1)) = 0.0
 		_DistortionRotation ("Direction Rotation", Range(0, 360)) = 0
@@ -172,6 +179,7 @@
 			#define PROJECTION_FLAT 0
 			#define PROJECTION_SPHERE 1
 			#define PROJECTION_MESH 2
+			#define PROJECTION_WALLS 3
 			
 			#define BLENDMODE_MULTIPLY 0
 			#define BLENDMODE_SCREEN 1
@@ -221,7 +229,7 @@
 			#define PLATFORM_DESKTOP 1
 			#define PLATFORM_VR 2
 			
-			// apparently Unity doesn't animate vector fields properly, so time for some hacky workarounds
+			// apparently Unity doesn't animate vector fields properly, so _Time for some hacky workarounds
 			#define _ScreenXOffset float4(_ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA)
 			#define _ScreenYOffset float4(_ScreenYOffsetR, _ScreenYOffsetG, _ScreenYOffsetB, _ScreenYOffsetA)
 			#define _ScreenXMultiplier float4(_ScreenXMultiplierR, _ScreenXMultiplierG, _ScreenXMultiplierB, _ScreenXMultiplierA)
@@ -249,13 +257,21 @@
 				float4 posOrigin : TEXCOORD2;
 				float3 cubemapSampler : TEXCOORD3;
 				float2 uv : TEXCOORD4;
+				float4 worldDir : TEXCOORD5;
 			};
 			
+			UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
+			
 			int _ProjectionType;
+			float _ProjectionRotX, _ProjectionRotY, _ProjectionRotZ;
 			
 			float _MinFalloff;
 			float _MaxFalloff;
 			int _FalloffCurve;
+			int _DepthFalloff;
+			float _DepthMinFalloff;
+			float _DepthMaxFalloff;
+			int _DepthFalloffCurve;
 
 			int _OverlayImageType;
 			int _OverlayBoundaryHandling;
@@ -437,6 +453,16 @@
 				}
 			}
 			
+			float4 CalculateFrustumCorrection() {
+				float x1 = -UNITY_MATRIX_P._31 / (UNITY_MATRIX_P._11 * UNITY_MATRIX_P._34);
+				float x2 = -UNITY_MATRIX_P._32 / (UNITY_MATRIX_P._22 * UNITY_MATRIX_P._34);
+				return float4(x1, x2, 0, UNITY_MATRIX_P._33 / UNITY_MATRIX_P._34 + x1 * UNITY_MATRIX_P._13 + x2 * UNITY_MATRIX_P._23);
+			}
+			
+			float CorrectedLinearEyeDepth(float z, float B) {
+				return rcp(z / UNITY_MATRIX_P._34 + B);
+			}
+			
 			float2 pixelateSamples(float2 res, float2 invRes, float2 uv) {
 				uv *= res;
 				return (floor(uv) + smoothstep(0, fwidth(uv), frac(uv)) - .5) * invRes;
@@ -530,19 +556,17 @@
 			float lerpstep(float x, float y, float s) {
 				// prevent NaN edge case
 				if (y == x) return step(y, s);
-				if (s < x) return 0;
-				if (s > y) return 1;
-				return (s - x) / (y - x);
+				return saturate((s - x) / (y - x));
 			}
 			
-			fixed calculateEffectAmplitudeFromFalloff(float dist) {
-				UNITY_BRANCH switch (_FalloffCurve) {
+			fixed calculateEffectAmplitudeFromFalloff(float dist, int curveType, float minFalloff, float maxFalloff) {
+				UNITY_BRANCH switch (curveType) {
 					case FALLOFF_CURVE_SHARP:
-						return 1 - step(_MaxFalloff, dist);
+						return 1 - step(maxFalloff, dist);
 					case FALLOFF_CURVE_LINEAR:
-						return 1 - lerpstep(_MinFalloff, _MaxFalloff, dist);
+						return 1 - lerpstep(minFalloff, maxFalloff, dist);
 					case FALLOFF_CURVE_SMOOTH:
-						return 1 - smoothstep(_MinFalloff, _MaxFalloff, dist);
+						return 1 - smoothstep(minFalloff, maxFalloff, dist);
 					default:
 						return 1;
 				}
@@ -588,29 +612,58 @@
 				return uv;
 			}
 			
+			float3 rotateProjectionWorld(float3 posWorld) {
+				posWorld -= _WorldSpaceCameraPos;
+				float lensq = length(posWorld);
+				posWorld /= lensq;
+				posWorld.yz = rotate(posWorld.yz, _ProjectionRotX);
+				posWorld.xz = rotate(posWorld.xz, _ProjectionRotY);
+				posWorld.xy = rotate(posWorld.xy, _ProjectionRotZ);
+				posWorld *= lensq;
+				posWorld += _WorldSpaceCameraPos;
+				return posWorld;
+			}
+			
 			float2 calculateScreenUVs(float3 posWorld, float2 meshUV) {
 				float2 screenSpaceOverlayUV = 0;
 				
 				UNITY_BRANCH switch (_ProjectionType) {
 					case PROJECTION_FLAT:
-						screenSpaceOverlayUV = computeScreenSpaceOverlayUV(posWorld);
+						screenSpaceOverlayUV = computeScreenSpaceOverlayUV(rotateProjectionWorld(posWorld));
 						break;
 					case PROJECTION_SPHERE:
-						screenSpaceOverlayUV = computeSphereUV(posWorld);
+						screenSpaceOverlayUV = computeSphereUV(rotateProjectionWorld(posWorld));
 						break;
 					case PROJECTION_MESH:
 						screenSpaceOverlayUV = meshUV;
 						break;
+					case PROJECTION_WALLS: {
+						float3 rd = normalize(rotateProjectionWorld(posWorld) - _WorldSpaceCameraPos);
+						float bot = dot(rd, float3(1, 0, 0));
+						bot = sign(bot) * max(abs(bot), 3e-3);
+						screenSpaceOverlayUV = (rd / bot).yz;
+						break;
+					}
 				}
 				
 				return screenSpaceOverlayUV;
 			}
 			
-			fixed calculateFalloffAmplitude(float2 screenUV) {
+			fixed calculateFalloffAmplitude(float2 screenUV, float depth) {
 				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
 				float effectDistance = length(viewVec);
-				fixed4 amplitudeMaskContribution = tex2Dlod(_OverallAmplitudeMask, float4(screenUV, 0, 0));
-				return calculateEffectAmplitudeFromFalloff(effectDistance) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity;
+				screenUV -= .5;
+				fixed4 amplitudeMaskContribution = tex2Dlod(_OverallAmplitudeMask, float4(TRANSFORM_TEX(screenUV, _OverallAmplitudeMask) + .5, 0, 0));
+				fixed depthContribution = 1;
+				if (_DepthFalloff && depth != -1234) {
+					depthContribution = calculateEffectAmplitudeFromFalloff(depth, _DepthFalloffCurve, _DepthMinFalloff, _DepthMaxFalloff);
+				}
+				return calculateEffectAmplitudeFromFalloff(effectDistance, _FalloffCurve, _MinFalloff, _MaxFalloff) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity * depthContribution;
+			}
+			
+			float calculateCameraDepth(float2 screenPos, float4 worldDir, float perspectiveDivide) {
+				float z = tex2Dlod(_CameraDepthTexture, float4(screenPos * perspectiveDivide, 0, 0)).r;
+				return CorrectedLinearEyeDepth(z, worldDir.w);
 			}
 			
 			v2f vert (appdata v) {
@@ -637,28 +690,31 @@
 					return o;
 				}
 				
-				v.vertex.yz = mul(createRotationMatrix(_ObjectRotationX), v.vertex.yz);
-				v.vertex.xz = mul(createRotationMatrix(_ObjectRotationY), v.vertex.xz);
-				v.vertex.xy = mul(createRotationMatrix(_ObjectRotationZ), v.vertex.xy);
+				v.vertex.yz = rotate(v.vertex.yz, _ObjectRotationX);
+				v.vertex.xz = rotate(v.vertex.xz, _ObjectRotationY);
+				v.vertex.xy = rotate(v.vertex.xy, _ObjectRotationZ);
 				v.vertex.xyz *= _ObjectScale;
 				v.vertex.xyz += _Puffiness * v.normal;
 				
 				v.vertex.xyz += _ObjectPosition;
 				
 				o.posWorld = mul(unity_ObjectToWorld, v.vertex).xyz;
+				float4 vertexIntended = UnityObjectToClipPos(v.vertex);
+				o.projPos = ComputeScreenPos(vertexIntended);
+				o.worldDir.xyz = o.posWorld - _WorldSpaceCameraPos;
+				o.worldDir.w = dot(vertexIntended, CalculateFrustumCorrection());
 				
 				float4 viewPos = float4(UnityWorldToViewPos(float4(o.posWorld, 1)), 1);
 				
 				UNITY_BRANCH if (!_ScreenReprojection) {
 					float2 screenUV = calculateScreenUVs(o.posWorld, v.uv);
-					fixed allAmp = calculateFalloffAmplitude(screenUV);
+					fixed allAmp = calculateFalloffAmplitude(screenUV, -1234);
 					float rotation = allAmp * _ScreenRotationAngle;
 					viewPos.xy = rotate(viewPos.xy, rotation);
 					o.posWorld = rotateAxis(o.posWorld, UNITY_MATRIX_IT_MV[2].xyz, rotation);
 				}
 				
 				o.pos = UnityViewToClipPos(viewPos);
-				o.projPos = ComputeScreenPos(UnityObjectToClipPos(v.vertex));
 				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
 				o.posOrigin.xy /= o.posOrigin.w;
 				o.cubemapSampler = o.posWorld - _WorldSpaceCameraPos;
@@ -673,13 +729,15 @@
 				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
 				float effectDistance = length(viewVec);
 				
+				float depth = calculateCameraDepth(i.projPos.xy, i.worldDir, rcp(i.pos.w));
+				
 				float VRFix = 1;
 				#if defined(USING_STEREO_MATRICES)
 				VRFix = .5;
 				#endif
 				
 				float2 screenSpaceOverlayUV = calculateScreenUVs(i.posWorld, i.uv);
-				fixed allAmp = calculateFalloffAmplitude(screenSpaceOverlayUV);
+				fixed allAmp = calculateFalloffAmplitude(screenSpaceOverlayUV, depth);
 				
 				float2 distortion = 0;
 				
@@ -720,10 +778,10 @@
 								_MeltMap_ST);
 							float4 meltVal = tex2Dlod(_MeltMap, float4(distortionUV, 0, 0));
 							float2 motionVector = normalize(2 * meltVal.rg - 1);
-							float activationTime = meltVal.b * _MeltActivationScale;
+							float activation_Time = meltVal.b * _MeltActivationScale;
 							float speed = meltVal.a * _DistortionAmplitude;
-							if (_MeltController >= activationTime) {
-								distortion = ((_MeltController - activationTime) * speed) * motionVector;
+							if (_MeltController >= activation_Time) {
+								distortion = ((_MeltController - activation_Time) * speed) * motionVector;
 							}
 						}
 						break;
@@ -740,7 +798,7 @@
 						{
 							float2 uv = calculateUVsWithFlipbookParameters(
 								screenSpaceOverlayUV, 
-								true, 
+								distortion, 
 								_PixelatedSampling,
 								_OverlayImageType == OVERLAY_FLIPBOOK, 
 								_MainTex_TexelSize, 
@@ -780,10 +838,10 @@
 					grabUV -= i.posOrigin.xy;
 					_Zoom = lerp(1, _Zoom, saturate(-dot(normalize(viewVec), UNITY_MATRIX_V[2].xyz)));
 					grabUV *= lerp(1, _Zoom, allAmp);
-					_Pixelation *= allAmp;
-					if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
 					grabUV += i.posOrigin.xy;
 				}
+				_Pixelation *= allAmp;
+				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
 				
 				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
 				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + wobbleTiling);
