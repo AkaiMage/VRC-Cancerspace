@@ -572,7 +572,7 @@
 				}
 			}
 			
-			float2 calculateUVsWithFlipbookParameters(float2 uv, float2 distortion, bool pixelated, bool flipbook, float4 texelSizes, float startFrame, float fps, float totalFrames, float2 cr, float uvRot, float2 uvScrollSpeed, float4 uvST) {
+			float2 calculateUVsWithFlipbookParameters(float2 uv, float2 distortion, bool pixelated, bool flipbook, float4 texelSizes, float startFrame, float fps, float totalFrames, float2 cr, float uvRot, float2 uvScrollSpeed, float4 uvST, int boundaryHandling) {
 				float currentFrame = 0;
 				float2 invCR = 1;
 				
@@ -593,7 +593,7 @@
 				uv = mul(createRotationMatrix(uvRot), uv);
 				uv = uv * uvST.xy + uvST.zw + .5;
 				
-				switch (_OverlayBoundaryHandling) {
+				switch (boundaryHandling) {
 					case BOUNDARYMODE_CLAMP:
 						uv = saturate(uv);
 						break;
@@ -757,7 +757,8 @@
 								float2(_DistortFlipbookColumns, _DistortFlipbookRows),
 								_DistortionMapRotation,
 								_BumpMapScrollSpeed,
-								_BumpMap_ST);
+								_BumpMap_ST,
+								BOUNDARYMODE_REPEAT);
 							distortion = UnpackNormal(tex2Dlod(_BumpMap, float4(distortionUV, 0, 0))).xy * _DistortionAmplitude;
 						}
 						break;
@@ -775,7 +776,8 @@
 								float2(_DistortFlipbookColumns, _DistortFlipbookRows),
 								_DistortionMapRotation,
 								0,
-								_MeltMap_ST);
+								_MeltMap_ST,
+								BOUNDARYMODE_REPEAT);
 							float4 meltVal = tex2Dlod(_MeltMap, float4(distortionUV, 0, 0));
 							float2 motionVector = normalize(2 * meltVal.rg - 1);
 							float activation_Time = meltVal.b * _MeltActivationScale;
@@ -808,7 +810,8 @@
 								float2(_FlipbookColumns, _FlipbookRows), 
 								_MainTexRotation, 
 								_MainTexScrollSpeed, 
-								_MainTex_ST);
+								_MainTex_ST,
+								_OverlayBoundaryHandling);
 							
 							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
 								color = 0;
