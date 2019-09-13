@@ -13,7 +13,7 @@
 		_StencilReadMask ("Read Mask", Int) = 255
 		_StencilWriteMask ("Write Mask", Int) = 255
 		
-		[Enum(Flat, 0, Sphere, 1, Mesh, 2, Walls, 3)] _ProjectionType ("Projection Type", Int) = 0
+		[Enum(Flat, 0, Sphere, 1, Mesh, 2, Walls, 3, Triplanar, 4)] _ProjectionType ("Projection Type", Int) = 0
 		_ProjectionRotX ("Rotation X", Range(-360, 360)) = 0
 		_ProjectionRotY ("Rotation Y", Range(-360, 360)) = 0
 		_ProjectionRotZ ("Rotation Z", Range(-360, 360)) = 0
@@ -180,6 +180,7 @@
 			#define PROJECTION_SPHERE 1
 			#define PROJECTION_MESH 2
 			#define PROJECTION_WALLS 3
+			#define PROJECTION_TRIPLANAR 4
 			
 			#define BLENDMODE_MULTIPLY 0
 			#define BLENDMODE_SCREEN 1
@@ -624,10 +625,10 @@
 				return posWorld;
 			}
 			
-			float2 calculateScreenUVs(float3 posWorld, float2 meshUV) {
+			float2 calculateScreenUVs(int projectionType, float3 posWorld, float2 meshUV, float3 triplanarWorld, float3 triplanarNormal) {
 				float2 screenSpaceOverlayUV = 0;
 				
-				UNITY_BRANCH switch (_ProjectionType) {
+				UNITY_BRANCH switch (projectionType) {
 					case PROJECTION_FLAT:
 						screenSpaceOverlayUV = computeScreenSpaceOverlayUV(rotateProjectionWorld(posWorld));
 						break;
@@ -642,6 +643,15 @@
 						float bot = dot(rd, float3(1, 0, 0));
 						bot = sign(bot) * max(abs(bot), 3e-3);
 						screenSpaceOverlayUV = (rd / bot).yz;
+						break;
+					}
+					case PROJECTION_TRIPLANAR: {
+						triplanarNormal = abs(triplanarNormal);
+						
+						screenSpaceOverlayUV = 
+							step(triplanarNormal.y, triplanarNormal.x) * step(triplanarNormal.z, triplanarNormal.x) * triplanarWorld.zy + 
+							step(triplanarNormal.x, triplanarNormal.y) * step(triplanarNormal.z, triplanarNormal.y) * triplanarWorld.xz + 
+							step(triplanarNormal.x, triplanarNormal.z) * step(triplanarNormal.y, triplanarNormal.z) * triplanarWorld.xy;
 						break;
 					}
 				}
@@ -707,7 +717,9 @@
 				float4 viewPos = float4(UnityWorldToViewPos(float4(o.posWorld, 1)), 1);
 				
 				UNITY_BRANCH if (!_ScreenReprojection) {
-					float2 screenUV = calculateScreenUVs(o.posWorld, v.uv);
+					int projectionType = _ProjectionType;
+					if (projectionType == PROJECTION_TRIPLANAR) projectionType = PROJECTION_FLAT;
+					float2 screenUV = calculateScreenUVs(_ProjectionType, o.posWorld, v.uv, 0, 0);
 					fixed allAmp = calculateFalloffAmplitude(screenUV, -1234);
 					float rotation = allAmp * _ScreenRotationAngle;
 					viewPos.xy = rotate(viewPos.xy, rotation);
@@ -736,7 +748,15 @@
 				VRFix = .5;
 				#endif
 				
-				float2 screenSpaceOverlayUV = calculateScreenUVs(i.posWorld, i.uv);
+				float3 triplanarWorld = depth * normalize(i.posWorld - _WorldSpaceCameraPos) + _WorldSpaceCameraPos;
+				
+				float3 triplanarNormal;
+				if (isInMirror()) triplanarNormal = cross(ddx(triplanarWorld), ddy(triplanarWorld));
+				else triplanarNormal = cross(-ddx(triplanarWorld), ddy(triplanarWorld));
+				triplanarNormal = normalize(triplanarNormal);
+				
+				
+				float2 screenSpaceOverlayUV = calculateScreenUVs(_ProjectionType, i.posWorld, i.uv, triplanarWorld, triplanarNormal);
 				fixed allAmp = calculateFalloffAmplitude(screenSpaceOverlayUV, depth);
 				
 				float2 distortion = 0;
