@@ -113,7 +113,7 @@
 		[HDR] _Color ("Screen Color", Color) = (1,1,1,1)
 		_ScreenColorBlendMode ("Screen Color Blend Mode", Int) = 0
 		
-		[Toggle(_)] _Burn ("Color Burning (No Bloom)", Int) = 0
+		[Toggle(_)] _Burn ("Color Burning", Int) = 0
 		_BurnLow ("Color Burn Low", Range(-5, 5)) = 0
 		_BurnHigh ("Color Burn High", Range(-5, 5)) = 1
 		
@@ -176,71 +176,6 @@
 			#pragma vertex vert
 			#pragma fragment frag
 			
-			#define PROJECTION_FLAT 0
-			#define PROJECTION_SPHERE 1
-			#define PROJECTION_MESH 2
-			#define PROJECTION_WALLS 3
-			#define PROJECTION_TRIPLANAR 4
-			
-			#define BLENDMODE_MULTIPLY 0
-			#define BLENDMODE_SCREEN 1
-			#define BLENDMODE_OVERLAY 2
-			#define BLENDMODE_ADD 3
-			#define BLENDMODE_SUBTRACT 4
-			#define BLENDMODE_DIFFERENCE 5
-			#define BLENDMODE_DIVIDE 6
-			#define BLENDMODE_DARKEN 7
-			#define BLENDMODE_LIGHTEN 8
-			#define BLENDMODE_NORMAL 9
-			#define BLENDMODE_COLORDODGE 10
-			#define BLENDMODE_COLORBURN 11
-			#define BLENDMODE_HARDLIGHT 12
-			#define BLENDMODE_SOFTLIGHT 13
-			#define BLENDMODE_EXCLUSION 14
-			
-			#define BOUNDARYMODE_CLAMP 0
-			#define BOUNDARYMODE_REPEAT 1
-			#define BOUNDARYMODE_OVERLAY 2
-			#define BOUNDARYMODE_SCREEN 2
-			
-			#define OVERLAY_IMAGE 0
-			#define OVERLAY_FLIPBOOK 1
-			#define OVERLAY_CUBEMAP 2
-			
-			#define DISTORT_NORMAL 0
-			#define DISTORT_MELT 1
-			
-			#define DISTORT_TARGET_SCREEN 0
-			#define DISTORT_TARGET_OVERLAY 1
-			#define DISTORT_TARGET_BOTH 2
-			
-			#define FALLOFF_CURVE_SHARP 0
-			#define FALLOFF_CURVE_LINEAR 1
-			#define FALLOFF_CURVE_SMOOTH 2
-			
-			#define MIRROR_NORMAL 0
-			#define MIRROR_DISABLE 1
-			#define MIRROR_ONLY 2
-			
-			#define EYE_BOTH 0
-			#define EYE_LEFT 1
-			#define EYE_RIGHT 2
-			
-			#define PLATFORM_ALL 0
-			#define PLATFORM_DESKTOP 1
-			#define PLATFORM_VR 2
-			
-			// apparently Unity doesn't animate vector fields properly, so _Time for some hacky workarounds
-			#define _ScreenXOffset float4(_ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA)
-			#define _ScreenYOffset float4(_ScreenYOffsetR, _ScreenYOffsetG, _ScreenYOffsetB, _ScreenYOffsetA)
-			#define _ScreenXMultiplier float4(_ScreenXMultiplierR, _ScreenXMultiplierG, _ScreenXMultiplierB, _ScreenXMultiplierA)
-			#define _ScreenYMultiplier float4(_ScreenYMultiplierR, _ScreenYMultiplierG, _ScreenYMultiplierB, _ScreenYMultiplierA)
-			#define _HSVAdd float3(_HueAdd, _SaturationAdd, _ValueAdd)
-			#define _HSVMultiply float3(_HueMultiply, _SaturationMultiply, _ValueMultiply)
-			#define _ObjectPosition (float3(_ObjectPositionX, _ObjectPositionY, _ObjectPositionZ) + _ObjectPositionA)
-			#define _ObjectScale (float3(_ObjectScaleX, _ObjectScaleY, _ObjectScaleZ) * _ObjectScaleA)
-			#define _MainTexScrollSpeed float2(_MainTexScrollSpeedX, _MainTexScrollSpeedY)
-			#define _BumpMapScrollSpeed float2(_BumpMapScrollSpeedX, _BumpMapScrollSpeedY)
 			
 			#include "UnityCG.cginc"
 			#include "AutoLight.cginc"
@@ -261,316 +196,24 @@
 				float4 worldDir : TEXCOORD5;
 			};
 			
-			UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
-			
-			int _ProjectionType;
-			float _ProjectionRotX, _ProjectionRotY, _ProjectionRotZ;
-			
-			float _MinFalloff;
-			float _MaxFalloff;
-			int _FalloffCurve;
-			int _DepthFalloff;
-			float _DepthMinFalloff;
-			float _DepthMaxFalloff;
-			int _DepthFalloffCurve;
-
-			int _OverlayImageType;
-			int _OverlayBoundaryHandling;
-			
-			sampler2D _MainTex;
-			float4 _MainTex_TexelSize;
-			float4 _MainTex_ST;
-			float _MainTexScrollSpeedX, _MainTexScrollSpeedY;
-			float _MainTexRotation;
-			
-			int _PixelatedSampling;
-			
-			int _FlipbookRows, _FlipbookColumns;
-			int _FlipbookStartFrame;
-			int _FlipbookTotalFrames;
-			float _FlipbookFPS;
-			
-			int _DistortFlipbook;
-			int _DistortFlipbookRows, _DistortFlipbookColumns;
-			int _DistortFlipbookStartFrame;
-			int _DistortFlipbookTotalFrames;
-			float _DistortFlipbookFPS;
-			
-			samplerCUBE _OverlayCubemap;
-			float _OverlayCubemapRotationX, _OverlayCubemapRotationY, _OverlayCubemapRotationZ;
-			float _OverlayCubemapSpeedX, _OverlayCubemapSpeedY, _OverlayCubemapSpeedZ;
+			#include "CGInclude/CSProps.cginc"
 			
 			sampler2D _Garb;
 			float4 _Garb_TexelSize;
-			
-			float4 _OverlayColor;
-			float4 _Color;
-			int _ScreenColorBlendMode;
-			
-			float _XShake, _YShake;
-			float _XShakeSpeed, _YShakeSpeed;
-			float _ShakeAmplitude;
-			
-			float _XWobbleAmount, _YWobbleAmount, _XWobbleTiling, _YWobbleTiling, _XWobbleSpeed, _YWobbleSpeed;
-			
-			int _BlendMode;
-			float _BlendAmount;
-			
-			float _InversionAmount;
-			
-			float _Pixelation;
-			
-			float _HueAdd, _SaturationAdd, _ValueAdd;
-			float _HueMultiply, _SaturationMultiply, _ValueMultiply;
-			
-			float _Zoom;
-			
-			int _Burn;
-			float _BurnLow, _BurnHigh;
-			
-			float _Puffiness;
-			
-			float _ObjectPositionX, _ObjectPositionY, _ObjectPositionZ, _ObjectPositionA;
-			float _ObjectRotationX, _ObjectRotationY, _ObjectRotationZ;
-			float _ObjectScaleX, _ObjectScaleY, _ObjectScaleZ, _ObjectScaleA;
-			
-			int _MirrorMode;
-			
-			int _ScreenReprojection;
-			float _ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA;
-			float _ScreenYOffsetR, _ScreenYOffsetG, _ScreenYOffsetB, _ScreenYOffsetA;
-			float _ScreenXMultiplierR, _ScreenXMultiplierG, _ScreenXMultiplierB, _ScreenXMultiplierA;
-			float _ScreenYMultiplierR, _ScreenYMultiplierG, _ScreenYMultiplierB, _ScreenYMultiplierA;
-			
-			float _ScreenRotationAngle;
-			
-			int _ScreenBoundaryHandling;
-			
-			// blurring method is based on https://www.shadertoy.com/view/XsVBDR
-			
-			int _BlurSampling;
-			float _AnimatedSampling;
-			float _BlurRadius;
-			
-			int _DistortionType, _DistortionTarget;
-			sampler2D _BumpMap;
-			float4 _BumpMap_TexelSize;
-			float4 _BumpMap_ST;
-			float _DistortionMapRotation;
-			float _DistortionAmplitude;
-			float _DistortionRotation;
-			float _BumpMapScrollSpeedX, _BumpMapScrollSpeedY;
-			sampler2D _MeltMap;
-			float4 _MeltMap_TexelSize;
-			float4 _MeltMap_ST;
-			float _MeltController, _MeltActivationScale;
-			
-			sampler2D _DistortionMask;
-			float4 _DistortionMask_ST;
-			float _DistortionMaskOpacity;
-			sampler2D _OverlayMask;
-			float4 _OverlayMask_ST;
-			float _OverlayMaskOpacity;
-			sampler2D _OverallEffectMask;
-			float4 _OverallEffectMask_ST;
-			float _OverallEffectMaskOpacity;
-			int _OverallEffectMaskBlendMode;
-			sampler2D _OverallAmplitudeMask;
-			float4 _OverallAmplitudeMask_ST;
-			float _OverallAmplitudeMaskOpacity;
-			
-			int _EyeSelector;
-			int _PlatformSelector;
+
+			#include "CGInclude/CSEnums.cginc"
+			#include "CGInclude/CSBlending.cginc"
+			#include "CGInclude/CSUV.cginc"
+			#include "CGInclude/CSTransform.cginc"
+			#include "CGInclude/CSDepth.cginc"
+			#include "CGInclude/CSDiscriminate.cginc"
+			#include "CGInclude/CSFalloff.cginc"
 			
 			float2 hash23(float3 p) {
 				if (_AnimatedSampling) p.z += frac(_Time.z) * 4;
 				p = frac(p * float3(400, 450, .1));
 				p += dot(p, p.yzx + 20);
 				return frac((p.xx + p.yz) * p.zy);
-			}
-			
-			float3 hsv2rgb(float3 c) {
-				return ((clamp(abs(frac(c.x+float3(0,2./3,1./3))*6-3)-1,0,1)-1)*c.y+1)*c.z;
-			}
-			
-			float3 rgb2hsv(float3 c) {
-				float4 K = float4(0, -1./3, 2./3, -1);
-				float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
-				float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
-
-				float d = q.x - min(q.w, q.y);
-				float e = 1e-10;
-				return float3(abs(q.z + (q.w - q.y) / (6 * d + e)), d / (q.x + e), q.x);
-			}
-			
-			float2x2 createRotationMatrix(float deg) {
-				float s, c;
-				sincos(deg * (UNITY_PI / 180), s, c);
-				return float2x2(c, s, -s, c);
-			}
-			
-			float2 rotate(float2 uv, float angle) {
-				return mul(createRotationMatrix(angle), uv);
-			}
-			
-			float3 rotateAxis(float3 p, float3 k, float theta) {
-				// FIXME: this normalize call might not be necessary.
-				k = normalize(k);
-				
-				float s, c;
-				sincos(theta * (UNITY_PI / 180), s, c);
-				return p * c + cross(k, p) * s + k * dot(k, p) * (1 - c);
-			}
-			
-			float2 computeScreenSpaceOverlayUV(float3 worldSpacePos) {
-				float3 viewSpace = mul(UNITY_MATRIX_V, worldSpacePos - _WorldSpaceCameraPos);
-				float2 adjusted = viewSpace.xy / viewSpace.z;
-				float width = _Garb_TexelSize.z;
-				#if defined(USING_STEREO_MATRICES)
-				width *= .5;
-				#endif
-				float height = _Garb_TexelSize.w;
-				
-				return .5 * (1 - adjusted * float2((height*(width+1))/(width*(height+1)), 1));
-			}
-			
-			float2 computeSphereUV(float3 worldSpacePos) {
-				float3 viewDir = normalize(worldSpacePos - _WorldSpaceCameraPos);
-				float lat = acos(viewDir.y);
-				float lon = atan2(viewDir.z, viewDir.x);
-				lon = fmod(lon + UNITY_PI, UNITY_TWO_PI) - UNITY_PI;
-				return 1 - float2(lon, lat) / UNITY_PI;
-			}
-			
-			bool isInMirror() {
-				return unity_CameraProjection[2][0] != 0 || unity_CameraProjection[2][1] != 0;
-			}
-			
-			bool isEye(int eyeIndex, bool mirror) {
-				if (mirror) {
-					return (UNITY_MATRIX_P._13 >= 0) == eyeIndex;
-				} else {
-					return unity_StereoEyeIndex == eyeIndex;
-				}
-			}
-			
-			float4 CalculateFrustumCorrection() {
-				float x1 = -UNITY_MATRIX_P._31 / (UNITY_MATRIX_P._11 * UNITY_MATRIX_P._34);
-				float x2 = -UNITY_MATRIX_P._32 / (UNITY_MATRIX_P._22 * UNITY_MATRIX_P._34);
-				return float4(x1, x2, 0, UNITY_MATRIX_P._33 / UNITY_MATRIX_P._34 + x1 * UNITY_MATRIX_P._13 + x2 * UNITY_MATRIX_P._23);
-			}
-			
-			float CorrectedLinearEyeDepth(float z, float B) {
-				return rcp(z / UNITY_MATRIX_P._34 + B);
-			}
-			
-			float2 pixelateSamples(float2 res, float2 invRes, float2 uv) {
-				uv *= res;
-				return (floor(uv) + smoothstep(0, fwidth(uv), frac(uv)) - .5) * invRes;
-			}
-			
-			float3 colorDodge(float3 b, float3 s) {
-				float3 res;
-				UNITY_UNROLL for (int i = 0; i < 3; ++i) {
-					if (b[i] == 0) res[i] = 0;
-					else if (s[i] == 1) res[i] = 1;
-					else res[i] = min(1, b[i] / (1 - s[i]));
-				}
-				return res;
-			}
-			
-			float3 colorBurn(float3 b, float3 s) {
-				float3 res;
-				UNITY_UNROLL for (int i = 0; i < 3; ++i) {
-					if (b[i] == 1) res[i] = 1;
-					else if (s[i] == 0) res[i] = 0;
-					else res[i] = 1 - min(1, (1 - b[i]) / s[i]);
-				}
-				return res;
-			}
-			
-			float3 hardLight(float3 b, float3 s) {
-				float3 res;
-				UNITY_UNROLL for (int i = 0; i < 3; ++i) {
-					if (s[i] <= .5) res[i] = 2 * s[i] * b[i];
-					else res[i] = 1 - 2 * (1 - b[i]) * (1 - s[i]);
-				}
-				return res;
-			}
-			
-			float3 softLight(float3 b, float3 s) {
-				float3 res;
-				UNITY_UNROLL for (int i = 0; i < 3; ++i) {
-					if (s[i] <= .5) res[i] = (1 - (1 - 2 * s[i]) * (1 - b[i])) * b[i];
-					else {
-						float d;
-						if (b[i] <= .25) d = ((16 * b[i] - 12) * b[i] + 4) * b[i];
-						else d = sqrt(b[i]);
-						res[i] = b[i] + (2 * s[i] - 1) * (d - b[i]);
-					}
-				}
-				return res;
-			}
-			
-			float3 getBlendedColor(float3 b, float3 s, int mode) {
-				UNITY_BRANCH switch (mode) {
-					case BLENDMODE_MULTIPLY:
-						return b * s;
-					case BLENDMODE_SCREEN:
-						return 1 - (1 - b) * (1 - s);
-					case BLENDMODE_OVERLAY:
-						return hardLight(s, b);
-					case BLENDMODE_ADD:
-						return saturate(b + s);
-					case BLENDMODE_SUBTRACT:
-						return saturate(b - s);
-					case BLENDMODE_DIFFERENCE:
-						return abs(b - s);
-					case BLENDMODE_DIVIDE:
-						return saturate(b / s);
-					case BLENDMODE_DARKEN:
-						return min(b, s);
-					case BLENDMODE_LIGHTEN:
-						return max(b, s);
-					case BLENDMODE_NORMAL:
-						return s;
-					case BLENDMODE_COLORDODGE:
-						return colorDodge(b, s);
-					case BLENDMODE_COLORBURN:
-						return colorBurn(b, s);
-					case BLENDMODE_HARDLIGHT:
-						return hardLight(b, s);
-					case BLENDMODE_SOFTLIGHT:
-						return softLight(b, s);
-					case BLENDMODE_EXCLUSION:
-						return b + s - 2 * b * s;
-					default:
-						// should never reach here
-						return 0;
-				}
-			}
-			
-			float3 blend(float3 b, float3 s, int mode, fixed amount) {
-				return lerp(b, getBlendedColor(b, s, mode), amount);
-			}
-			
-			float lerpstep(float x, float y, float s) {
-				// prevent NaN edge case
-				if (y == x) return step(y, s);
-				return saturate((s - x) / (y - x));
-			}
-			
-			fixed calculateEffectAmplitudeFromFalloff(float dist, int curveType, float minFalloff, float maxFalloff) {
-				UNITY_BRANCH switch (curveType) {
-					case FALLOFF_CURVE_SHARP:
-						return 1 - step(maxFalloff, dist);
-					case FALLOFF_CURVE_LINEAR:
-						return 1 - lerpstep(minFalloff, maxFalloff, dist);
-					case FALLOFF_CURVE_SMOOTH:
-						return 1 - smoothstep(minFalloff, maxFalloff, dist);
-					default:
-						return 1;
-				}
 			}
 			
 			float2 calculateUVsWithFlipbookParameters(float2 uv, float2 distortion, bool pixelated, bool flipbook, float4 texelSizes, float startFrame, float fps, float totalFrames, float2 cr, float uvRot, float2 uvScrollSpeed, float4 uvST, int boundaryHandling) {
@@ -599,7 +242,7 @@
 						uv = saturate(uv);
 						break;
 					case BOUNDARYMODE_REPEAT:
-						uv = frac(uv + _Time.yy * uvScrollSpeed);
+						uv = frac(uv + frac(_Time.yy * uvScrollSpeed));
 						break;
 				}
 				
@@ -611,52 +254,6 @@
 				}
 				
 				return uv;
-			}
-			
-			float3 rotateProjectionWorld(float3 posWorld) {
-				posWorld -= _WorldSpaceCameraPos;
-				float lensq = length(posWorld);
-				posWorld /= lensq;
-				posWorld.yz = rotate(posWorld.yz, _ProjectionRotX);
-				posWorld.xz = rotate(posWorld.xz, _ProjectionRotY);
-				posWorld.xy = rotate(posWorld.xy, _ProjectionRotZ);
-				posWorld *= lensq;
-				posWorld += _WorldSpaceCameraPos;
-				return posWorld;
-			}
-			
-			float2 calculateScreenUVs(int projectionType, float3 posWorld, float2 meshUV, float3 triplanarWorld, float3 triplanarNormal) {
-				float2 screenSpaceOverlayUV = 0;
-				
-				UNITY_BRANCH switch (projectionType) {
-					case PROJECTION_FLAT:
-						screenSpaceOverlayUV = computeScreenSpaceOverlayUV(rotateProjectionWorld(posWorld));
-						break;
-					case PROJECTION_SPHERE:
-						screenSpaceOverlayUV = computeSphereUV(rotateProjectionWorld(posWorld));
-						break;
-					case PROJECTION_MESH:
-						screenSpaceOverlayUV = meshUV;
-						break;
-					case PROJECTION_WALLS: {
-						float3 rd = normalize(rotateProjectionWorld(posWorld) - _WorldSpaceCameraPos);
-						float bot = dot(rd, float3(1, 0, 0));
-						bot = sign(bot) * max(abs(bot), 3e-3);
-						screenSpaceOverlayUV = (rd / bot).yz;
-						break;
-					}
-					case PROJECTION_TRIPLANAR: {
-						triplanarNormal = abs(triplanarNormal);
-						
-						screenSpaceOverlayUV = 
-							step(triplanarNormal.y, triplanarNormal.x) * step(triplanarNormal.z, triplanarNormal.x) * triplanarWorld.zy + 
-							step(triplanarNormal.x, triplanarNormal.y) * step(triplanarNormal.z, triplanarNormal.y) * triplanarWorld.xz + 
-							step(triplanarNormal.x, triplanarNormal.z) * step(triplanarNormal.y, triplanarNormal.z) * triplanarWorld.xy;
-						break;
-					}
-				}
-				
-				return screenSpaceOverlayUV;
 			}
 			
 			fixed calculateFalloffAmplitude(float2 screenUV, float depth) {
@@ -671,97 +268,8 @@
 				return calculateEffectAmplitudeFromFalloff(effectDistance, _FalloffCurve, _MinFalloff, _MaxFalloff) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity * depthContribution;
 			}
 			
-			float calculateCameraDepth(float2 screenPos, float4 worldDir, float perspectiveDivide) {
-				float z = tex2Dlod(_CameraDepthTexture, float4(screenPos * perspectiveDivide, 0, 0)).r;
-				return CorrectedLinearEyeDepth(z, worldDir.w);
-			}
-			
-			v2f vert (appdata v) {
-				v2f o;
-				
-				bool inMirror = isInMirror();
-				bool noRender = 
-					_MirrorMode == MIRROR_DISABLE && inMirror
-					|| _MirrorMode == MIRROR_ONLY && !inMirror
-					#if defined(USING_STEREO_MATRICES)
-					|| _PlatformSelector == PLATFORM_DESKTOP
-					|| _EyeSelector == EYE_LEFT && !isEye(0, inMirror)
-					|| _EyeSelector == EYE_RIGHT && !isEye(1, inMirror)
-					#else
-					|| _PlatformSelector == PLATFORM_VR
-					#endif
-					;
-				
-				
-				if (noRender) {
-					v.vertex.xyz = 1.0e25;
-					o = (v2f) 0;
-					o.pos = UnityObjectToClipPos(v.vertex);
-					return o;
-				}
-				
-				v.vertex.yz = rotate(v.vertex.yz, _ObjectRotationX);
-				v.vertex.xz = rotate(v.vertex.xz, _ObjectRotationY);
-				v.vertex.xy = rotate(v.vertex.xy, _ObjectRotationZ);
-				v.vertex.xyz *= _ObjectScale;
-				v.vertex.xyz += _Puffiness * v.normal;
-				
-				v.vertex.xyz += _ObjectPosition;
-				
-				o.posWorld = mul(unity_ObjectToWorld, v.vertex).xyz;
-				float4 vertexIntended = UnityObjectToClipPos(v.vertex);
-				o.projPos = ComputeScreenPos(vertexIntended);
-				o.worldDir.xyz = o.posWorld - _WorldSpaceCameraPos;
-				o.worldDir.w = dot(vertexIntended, CalculateFrustumCorrection());
-				
-				float4 viewPos = float4(UnityWorldToViewPos(float4(o.posWorld, 1)), 1);
-				
-				UNITY_BRANCH if (!_ScreenReprojection) {
-					int projectionType = _ProjectionType;
-					if (projectionType == PROJECTION_TRIPLANAR) projectionType = PROJECTION_FLAT;
-					float2 screenUV = calculateScreenUVs(_ProjectionType, o.posWorld, v.uv, 0, 0);
-					fixed allAmp = calculateFalloffAmplitude(screenUV, -1234);
-					float rotation = allAmp * _ScreenRotationAngle;
-					viewPos.xy = rotate(viewPos.xy, rotation);
-					o.posWorld = rotateAxis(o.posWorld, UNITY_MATRIX_IT_MV[2].xyz, rotation);
-				}
-				
-				o.pos = UnityViewToClipPos(viewPos);
-				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
-				o.posOrigin.xy /= o.posOrigin.w;
-				o.cubemapSampler = o.posWorld - _WorldSpaceCameraPos;
-				o.cubemapSampler.yz = mul(createRotationMatrix(_OverlayCubemapRotationX + _Time.y * _OverlayCubemapSpeedX), o.cubemapSampler.yz);
-				o.cubemapSampler.xz = mul(createRotationMatrix(_OverlayCubemapRotationY + _Time.y * _OverlayCubemapSpeedY), o.cubemapSampler.xz);
-				o.cubemapSampler.xy = mul(createRotationMatrix(_OverlayCubemapRotationZ + _Time.y * _OverlayCubemapSpeedZ), o.cubemapSampler.xy);
-				o.uv = v.uv;
-				return o;
-			}
-			
-			fixed4 frag (v2f i) : SV_Target {
-				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
-				float effectDistance = length(viewVec);
-				
-				float depth = calculateCameraDepth(i.projPos.xy, i.worldDir, rcp(i.pos.w));
-				
-				float VRFix = 1;
-				#if defined(USING_STEREO_MATRICES)
-				VRFix = .5;
-				#endif
-				
-				float3 triplanarWorld = depth * normalize(i.posWorld - _WorldSpaceCameraPos) + _WorldSpaceCameraPos;
-				
-				float3 triplanarNormal;
-				if (isInMirror()) triplanarNormal = cross(ddx(triplanarWorld), ddy(triplanarWorld));
-				else triplanarNormal = cross(-ddx(triplanarWorld), ddy(triplanarWorld));
-				triplanarNormal = normalize(triplanarNormal);
-				
-				
-				float2 screenSpaceOverlayUV = calculateScreenUVs(_ProjectionType, i.posWorld, i.uv, triplanarWorld, triplanarNormal);
-				fixed allAmp = calculateFalloffAmplitude(screenSpaceOverlayUV, depth);
-				
+			float2 calculateDistortion(float falloffAmplitude, float2 screenSpaceOverlayUV) {
 				float2 distortion = 0;
-				
-				
 				UNITY_BRANCH switch (_DistortionType) {
 					case DISTORT_NORMAL:
 						{
@@ -809,10 +317,12 @@
 						break;
 				}
 				
-				distortion *= allAmp * _DistortionMaskOpacity * tex2Dlod(_DistortionMask, float4((TRANSFORM_TEX((screenSpaceOverlayUV - .5), _DistortionMask) + .5), 0, 0)).r;
+				distortion *= falloffAmplitude * _DistortionMaskOpacity * tex2Dlod(_DistortionMask, float4((TRANSFORM_TEX((screenSpaceOverlayUV - .5), _DistortionMask) + .5), 0, 0)).r;
 				distortion = mul(createRotationMatrix(_DistortionRotation), distortion);
-				
-				
+				return distortion;
+			}
+			
+			float4 calculateOverlayColor(float2 screenSpaceOverlayUV, float2 distortion, float3 cubemapSampler) {
 				float4 color = 0;
 				UNITY_BRANCH switch (_OverlayImageType) {
 					case OVERLAY_IMAGE:
@@ -834,28 +344,116 @@
 								_OverlayBoundaryHandling);
 							
 							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
-								color = 0;
+								return 0;
 							} else {
-								color = tex2Dlod(_MainTex, float4(uv, 0, 0)) * _OverlayColor;
+								return tex2Dlod(_MainTex, float4(uv, 0, 0)) * _OverlayColor;
 							}
 						}
-						break;
 					case OVERLAY_CUBEMAP:
-						color = texCUBE(_OverlayCubemap, i.cubemapSampler) * _OverlayColor;
-						break;
+						return texCUBE(_OverlayCubemap, cubemapSampler) * _OverlayColor;
+					default:
+						return 0;
+				}
+			}
+			
+			v2f vert (appdata v) {
+				v2f o;
+				
+				bool inMirror = isInMirror();
+				bool noRender = 
+					_MirrorMode == MIRROR_DISABLE && inMirror
+					|| _MirrorMode == MIRROR_ONLY && !inMirror
+					#if defined(USING_STEREO_MATRICES)
+					|| _PlatformSelector == PLATFORM_DESKTOP
+					|| _EyeSelector == EYE_LEFT && !isEye(0, inMirror)
+					|| _EyeSelector == EYE_RIGHT && !isEye(1, inMirror)
+					#else
+					|| _PlatformSelector == PLATFORM_VR
+					#endif
+					;
+				
+				
+				if (noRender) {
+					v.vertex.xyz = 1.0e25;
+					o = (v2f) 0;
+					o.pos = UnityObjectToClipPos(v.vertex);
+					return o;
 				}
 				
+				v.vertex.xyz = rotateXYZ(v.vertex.xyz, _ObjectRotation);
+				v.vertex.xyz *= _ObjectScale;
+				v.vertex.xyz += _Puffiness * v.normal;
 				
-				float2 displace = float2(_XShake, _YShake) * sin(_Time.yy * float2(_XShakeSpeed, _YShakeSpeed)) * _ShakeAmplitude;
+				v.vertex.xyz += _ObjectPosition;
 				
-				if (_DistortionTarget == DISTORT_TARGET_SCREEN || _DistortionTarget == DISTORT_TARGET_BOTH) displace += distortion;
+				o.posWorld = mul(unity_ObjectToWorld, v.vertex).xyz;
+				float4 vertexIntended = UnityObjectToClipPos(v.vertex);
+				o.projPos = ComputeScreenPos(vertexIntended);
+				o.worldDir.xyz = o.posWorld - _WorldSpaceCameraPos;
+				o.worldDir.w = dot(vertexIntended, CalculateFrustumCorrection());
 				
-				float2 grabUV;
-				if (_ScreenReprojection) {
-					grabUV = screenSpaceOverlayUV;
-				} else {
-					grabUV = i.projPos.xy / i.projPos.w;
+				float4 viewPos = float4(UnityWorldToViewPos(float4(o.posWorld, 1)), 1);
+				
+				UNITY_BRANCH if (!_ScreenReprojection) {
+					int projectionType = _ProjectionType;
+					if (projectionType == PROJECTION_TRIPLANAR) projectionType = PROJECTION_FLAT;
+					
+					float2 screenUV = calculateScreenUVs(
+						_ProjectionType, 
+						rotateProjectionWorld(o.posWorld, _ProjectionRot), 
+						v.uv, 
+						0, 
+						0, 
+						_Garb_TexelSize.zw
+					);
+					
+					float rotation = calculateFalloffAmplitude(screenUV, -1234) * _ScreenRotationAngle;
+					viewPos.xy = rotate(viewPos.xy, rotation);
+					o.posWorld = rotateAxis(o.posWorld, UNITY_MATRIX_IT_MV[2].xyz, rotation);
 				}
+				
+				o.pos = UnityViewToClipPos(viewPos);
+				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
+				o.posOrigin.xy /= o.posOrigin.w;
+				o.cubemapSampler = rotateXYZ(o.posWorld - _WorldSpaceCameraPos, _OverlayCubemapRotation + _Time.y * _OverlayCubemapSpeed);
+				o.uv = v.uv;
+				return o;
+			}
+			
+			fixed4 frag (v2f i) : SV_Target {
+				float timeCircularMod = fmod(_Time.y, UNITY_TWO_PI);
+				
+				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
+				float effectDistance = length(viewVec);
+				
+				float depth = calculateCameraDepth(i.projPos.xy, i.worldDir, rcp(i.pos.w));
+				
+				float VRFix = 1;
+				#if defined(USING_STEREO_MATRICES)
+				VRFix = .5;
+				#endif
+				
+				float3 triplanarWorld = depth * normalize(i.posWorld - _WorldSpaceCameraPos) + _WorldSpaceCameraPos;
+				
+				float3 triplanarNormal;
+				if (isInMirror()) triplanarNormal = cross(ddx(triplanarWorld), ddy(triplanarWorld));
+				else triplanarNormal = cross(-ddx(triplanarWorld), ddy(triplanarWorld));
+				triplanarNormal = normalize(triplanarNormal);
+	
+				float2 screenSpaceOverlayUV = calculateScreenUVs(
+					_ProjectionType, 
+					rotateProjectionWorld(i.posWorld, _ProjectionRot), 
+					i.uv, 
+					triplanarWorld, 
+					triplanarNormal, 
+					_Garb_TexelSize.zw
+				);
+				
+				fixed allAmp = calculateFalloffAmplitude(screenSpaceOverlayUV, depth);
+				float2 distortion = calculateDistortion(allAmp, screenSpaceOverlayUV);
+				float4 color = calculateOverlayColor(screenSpaceOverlayUV, distortion, i.cubemapSampler);
+				
+				float2 grabUV = _ScreenReprojection ? screenSpaceOverlayUV : (i.projPos.xy / i.projPos.w);
 				
 				if (distance(i.posOrigin.xy, saturate(i.posOrigin.xy)) == 0) {
 					grabUV -= i.posOrigin.xy;
@@ -866,14 +464,10 @@
 				_Pixelation *= allAmp;
 				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
 				
-				float2 wobbleTiling = i.pos.xy * float2(_XWobbleTiling, _YWobbleTiling);
-				displace += float2(_XWobbleAmount, _YWobbleAmount) * sin(_Time.yy * float2(_XWobbleSpeed, _YWobbleSpeed) + wobbleTiling);
-				
-				
-				
-				displace.x *= VRFix;
-				
-				grabUV += allAmp * displace;
+				float2 displace = _Shake * sin(timeCircularMod * _ShakeSpeed) * _ShakeAmplitude;
+				displace += _WobbleAmount * sin(timeCircularMod * _WobbleSpeed + i.pos.xy * _WobbleTiling);
+				if (_DistortionTarget == DISTORT_TARGET_SCREEN || _DistortionTarget == DISTORT_TARGET_BOTH) displace += distortion;
+				grabUV += allAmp * displace * float2(VRFix, 1);
 				
 				float4 grabCol = float4(0, 0, 0, 1);
 				
@@ -934,7 +528,7 @@
 				grabCol.rgb = lerp(grabCol.rgb, hsv2rgb(hsv), allAmp);
 				
 				// lol one-liner for exposure and shit, GOML
-				if (_Burn) grabCol.rgb = lerp(grabCol.rgb, smoothstep(_BurnLow, _BurnHigh, grabCol.rgb), allAmp);
+				if (_Burn) grabCol.rgb = lerp(grabCol.rgb, unboundedSmoothstep(_BurnLow, _BurnHigh, grabCol.rgb), allAmp);
 				
 				float3 finalScreenColor = lerp(grabCol, float4(1 - grabCol.rgb, grabCol.a), _InversionAmount * allAmp);
 				float overlayMask = _OverlayMaskOpacity * tex2Dlod(_OverlayMask, float4(.5+TRANSFORM_TEX((screenSpaceOverlayUV-.5), _OverlayMask), 0, 0)).r;

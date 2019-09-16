@@ -593,7 +593,11 @@ public class CancerspaceInspector : ShaderGUI {
 					string newShaderPath = "RedMage/Cancerspace Queue " + customRenderQueue;
 					
 					string shaderPath = AssetDatabase.GetAssetPath(material.shader.GetInstanceID());
-					string outputLocation = EditorUtility.SaveFilePanelInProject("Save new shader file", "CancerspaceQueue" + customRenderQueue, "shader", "Please enter a file name to save the custom shader to.");
+					
+					//string outputLocation = EditorUtility.SaveFilePanelInProject("Save new shader file", "CancerspaceQueue" + customRenderQueue, "shader", "Please enter a file name to save the custom shader to.");
+					string outputLocation = shaderPath.Substring(0, shaderPath.Replace("\\", "/").LastIndexOf('/') + 1) + "CancerspaceQueue" + customRenderQueue + ".shader";
+					Debug.Log(shaderPath);
+					Debug.Log(outputLocation);
 					
 					try {
 						using (StreamWriter sw = new StreamWriter(outputLocation)) {
