@@ -32,29 +32,15 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string shouldRandomizeCheckboxText = "Allow randomization";
 		public static GUIContent overlayImageText = new GUIContent("Image Overlay", "The overlay image and color.");
 		public static string targetObjectSettingsTitle = "Target Object Settings";
-		public static string targetObjectPositionText = "Position";
-		public static string targetObjectRotationText = "Rotation";
-		public static string targetObjectScaleText = "Scale";
 		public static string falloffSettingsTitle = "Falloff Settings";
 		public static string wobbleSettingsTitle = "Wave Distortion";
 		public static string blurSettingsTitle = "Blur";
 		public static string distortionMapSettingsTitle = "Distortion Mapping";
 		public static string screenShakeSettingsTitle = "Screen Shake";
 		public static string overlaySettingsTitle = "Overlay";
-		public static string cubeMapRotationText = "Rotation";
-		public static string cubeMapSpeedText = "Rotation Speed";
 		public static string screenColorAdjustmentsTitle = "Screen Color Adjustment";
-		public static string hsvAddText = "HSV Add";
-		public static string hsvMultiplyText = "HSV Multiply";
 		public static string screenTransformTitle = "Screen Transformations";
-		public static string screenXOffsetText = "Screen X Offset (RGB)";
-		public static string screenYOffsetText = "Screen Y Offset (RGB)";
-		public static string screenXMultiplierText = "Screen X Multiplier (RGB)";
-		public static string screenYMultiplierText = "Screen Y Multiplier (RGB)";
-		public static string screenXRotationOriginText = "Screen Rotation Origin X (RGB)";
-		public static string screenYRotationOriginText = "Screen Rotation Origin Y (RGB)";
 		public static string projectionRotationText = "Rotation";
-		public static string screenRotationAngleText = "Screen Rotation Angle (RGB)";
 		public static string stencilTitle = "Stencil Testing";
 		public static string maskingTitle = "Masking";
 		public static string miscSettingsTitle = "Misc";
@@ -95,281 +81,13 @@ public class CancerspaceInspector : ShaderGUI {
 	private static bool showRandomizerOptions = false;
 	private static HashSet<String> propertiesWithRandomization = new HashSet<String>();
 	
-	protected CSProperty cullMode;
-	protected CSProperty zTest;
-	protected CSProperty zWrite;
-	protected CSProperty colorMask;
-	
-	protected CSProperty stencilRef;
-	protected CSProperty stencilComp;
-	protected CSProperty stencilPass;
-	protected CSProperty stencilFail;
-	protected CSProperty stencilZFail;
-	protected CSProperty stencilReadMask;
-	protected CSProperty stencilWriteMask;
-	
-	protected CSProperty puffiness;
-	protected CSProperty objectPositionX, objectPositionY, objectPositionZ, objectPositionA;
-	protected CSProperty objectRotationX, objectRotationY, objectRotationZ, objectRotationA;
-	protected CSProperty objectScaleX, objectScaleY, objectScaleZ, objectScaleA;
-	
-	protected CSProperty falloffCurve;
-	protected CSProperty falloffMinDistance;
-	protected CSProperty falloffMaxDistance;
-	protected CSProperty falloffDepth;
-	protected CSProperty falloffDepthCurve;
-	protected CSProperty falloffDepthMinDistance;
-	protected CSProperty falloffDepthMaxDistance;
-	
-	protected CSProperty blurRadius;
-	protected CSProperty blurSampling;
-	protected CSProperty blurSamplingAnimated;
-	
-	protected CSProperty zoomAmount;
-	protected CSProperty pixelationAmount;
-	
-	protected CSProperty wobbleXAmount;
-	protected CSProperty wobbleYAmount;
-	protected CSProperty wobbleXTiling;
-	protected CSProperty wobbleYTiling;
-	protected CSProperty wobbleXSpeed;
-	protected CSProperty wobbleYSpeed;
-	
-	protected CSProperty shakeXAmount;
-	protected CSProperty shakeYAmount;
-	protected CSProperty shakeXSpeed;
-	protected CSProperty shakeYSpeed;
-	protected CSProperty shakeAmplitude;
-	
-	protected CSProperty overlayImageType;
-	protected CSProperty overlayPixelate;
-	protected CSProperty overlayBoundary;
-	protected CSProperty overlayImage;
-	protected CSProperty overlayRotation;
-	protected CSProperty overlayScrollSpeedX;
-	protected CSProperty overlayScrollSpeedY;
-	protected CSProperty overlayFlipbookRows, overlayFlipbookCols;
-	protected CSProperty overlayFlipbookStart, overlayFlipbookFrames, overlayFlipbookFPS;
-	protected CSProperty overlayCubemap;
-	protected CSProperty overlayCubemapRotX, overlayCubemapRotY, overlayCubemapRotZ;
-	protected CSProperty overlayCubemapSpeedX, overlayCubemapSpeedY, overlayCubemapSpeedZ;
-	protected CSProperty overlayColor;
-	protected CSProperty overlayBlendAmount;
-	protected CSProperty overlayBlendMode;
-
-	protected CSProperty screenHueAdd, screenSaturationAdd, screenValueAdd;
-	protected CSProperty screenHueMultiply, screenSaturationMultiply, screenValueMultiply;
-	
-	protected CSProperty screenInversion;
-	protected CSProperty screenColor;
-	protected CSProperty screenColorBlendMode;
-	
-	protected CSProperty colorBurningToggle;
-	protected CSProperty colorBurningLow;
-	protected CSProperty colorBurningHigh;
-	
-	protected CSProperty screenReprojection;
-	protected CSProperty screenBoundaryHandling;
-	protected CSProperty screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA;
-	protected CSProperty screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA;
-	protected CSProperty screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA;
-	protected CSProperty screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA;
-	protected CSProperty screenXRotationOrigin;
-	protected CSProperty screenYRotationOrigin;
-	protected CSProperty screenRotationAngle;
-	
-	protected CSProperty mirrorReflectionMode;
-	
-	protected CSProperty distortionType;
-	protected CSProperty distortionTarget;
-	protected CSProperty distortionMap;
-	protected CSProperty meltMap;
-	protected CSProperty distortionMapRotation;
-	protected CSProperty meltTimeScale;
-	protected CSProperty meltController;
-	protected CSProperty distortionAmplitude;
-	protected CSProperty distortionRotation;
-	protected CSProperty distortionScrollSpeedX;
-	protected CSProperty distortionScrollSpeedY;
-	protected CSProperty distortFlipbook;
-	protected CSProperty distortFlipbookRows, distortFlipbookCols;
-	protected CSProperty distortFlipbookStart, distortFlipbookFrames, distortFlipbookFPS;
-	
-	protected CSProperty distortionMask;
-	protected CSProperty distortionMaskOpacity;
-	protected CSProperty overlayMask;
-	protected CSProperty overlayMaskOpacity;
-	protected CSProperty overallMask;
-	protected CSProperty overallMaskOpacity;
-	protected CSProperty overallMaskBlendMode;
-	protected CSProperty overallAmpMask;
-	protected CSProperty overallAmpMaskOpacity;
-	
-	protected CSProperty eyeSelector;
-	protected CSProperty platformSelector;
-	protected CSProperty projectionType;
-	protected CSProperty projectionRotX, projectionRotY, projectionRotZ;
-	
 	protected int customRenderQueue;
 	protected bool initialized;
 	
 	private bool randomizingCurrentPass;
 	private System.Random rng;
 	
-	public void FindProperties(MaterialProperty[] props) {
-		cullMode = FindProperty("_CullMode", props);
-		zTest = FindProperty("_ZTest", props);
-		zWrite = FindProperty("_ZWrite", props);
-		colorMask = FindProperty("_ColorMask", props);
-		
-		stencilRef = FindProperty("_StencilRef", props);
-		stencilComp = FindProperty("_StencilComp", props);
-		stencilPass = FindProperty("_StencilPassOp", props);
-		stencilFail = FindProperty("_StencilFailOp", props);
-		stencilZFail = FindProperty("_StencilZFailOp", props);
-		stencilReadMask = FindProperty("_StencilReadMask", props);
-		stencilWriteMask = FindProperty("_StencilWriteMask", props);
-		
-		puffiness = FindProperty("_Puffiness", props);
-		objectPositionX = FindProperty("_ObjectPositionX", props);
-		objectPositionY = FindProperty("_ObjectPositionY", props);
-		objectPositionZ = FindProperty("_ObjectPositionZ", props);
-		objectPositionA = FindProperty("_ObjectPositionA", props);
-		objectRotationX = FindProperty("_ObjectRotationX", props);
-		objectRotationY = FindProperty("_ObjectRotationY", props);
-		objectRotationZ = FindProperty("_ObjectRotationZ", props);
-		objectScaleX = FindProperty("_ObjectScaleX", props);
-		objectScaleY = FindProperty("_ObjectScaleY", props);
-		objectScaleZ = FindProperty("_ObjectScaleZ", props);
-		objectScaleA = FindProperty("_ObjectScaleA", props);
-		
-		falloffCurve = FindProperty("_FalloffCurve", props);
-		falloffMinDistance = FindProperty("_MinFalloff", props);
-		falloffMaxDistance = FindProperty("_MaxFalloff", props);
-		falloffDepth = FindProperty("_DepthFalloff", props);
-		falloffDepthCurve = FindProperty("_DepthFalloffCurve", props);
-		falloffDepthMinDistance = FindProperty("_DepthMinFalloff", props);
-		falloffDepthMaxDistance = FindProperty("_DepthMaxFalloff", props);
-		
-		blurRadius = FindProperty("_BlurRadius", props);
-		blurSampling = FindProperty("_BlurSampling", props);
-		blurSamplingAnimated = FindProperty("_AnimatedSampling", props);
-		
-		zoomAmount = FindProperty("_Zoom", props);
-		pixelationAmount = FindProperty("_Pixelation", props);
-		
-		wobbleXAmount = FindProperty("_XWobbleAmount", props);
-		wobbleYAmount = FindProperty("_YWobbleAmount", props);
-		wobbleXTiling = FindProperty("_XWobbleTiling", props);
-		wobbleYTiling = FindProperty("_YWobbleTiling", props);
-		wobbleXSpeed = FindProperty("_XWobbleSpeed", props);
-		wobbleYSpeed = FindProperty("_YWobbleSpeed", props);
-		
-		distortionType = FindProperty("_DistortionType", props);
-		distortionTarget = FindProperty("_DistortionTarget", props);
-		distortionMap = FindProperty("_BumpMap", props);
-		distortionMapRotation = FindProperty("_DistortionMapRotation", props);
-		distortionAmplitude = FindProperty("_DistortionAmplitude", props);
-		distortionRotation = FindProperty("_DistortionRotation", props);
-		distortionScrollSpeedX = FindProperty("_BumpMapScrollSpeedX", props);
-		distortionScrollSpeedY = FindProperty("_BumpMapScrollSpeedY", props);
-		meltMap = FindProperty("_MeltMap", props);
-		meltController = FindProperty("_MeltController", props);
-		meltTimeScale = FindProperty("_MeltActivationScale", props);
-		distortionMask = FindProperty("_DistortionMask", props);
-		distortFlipbook = FindProperty("_DistortFlipbook", props);
-		distortFlipbookStart = FindProperty("_DistortFlipbookStartFrame", props);
-		distortFlipbookFrames = FindProperty("_DistortFlipbookTotalFrames", props);
-		distortFlipbookFPS = FindProperty("_DistortFlipbookFPS", props);
-		distortFlipbookRows = FindProperty("_DistortFlipbookRows", props);
-		distortFlipbookCols = FindProperty("_DistortFlipbookColumns", props);
-		
-
-		shakeXAmount = FindProperty("_XShake", props);
-		shakeYAmount = FindProperty("_YShake", props);
-		shakeXSpeed = FindProperty("_XShakeSpeed", props);
-		shakeYSpeed = FindProperty("_YShakeSpeed", props);
-		shakeAmplitude = FindProperty("_ShakeAmplitude", props);
-		
-		overlayImageType = FindProperty("_OverlayImageType", props);
-		overlayImage = FindProperty("_MainTex", props);
-		overlayRotation = FindProperty("_MainTexRotation", props);
-		overlayPixelate = FindProperty("_PixelatedSampling", props);
-		overlayScrollSpeedX = FindProperty("_MainTexScrollSpeedX", props);
-		overlayScrollSpeedY = FindProperty("_MainTexScrollSpeedY", props);
-		overlayBoundary = FindProperty("_OverlayBoundaryHandling", props);
-		overlayFlipbookStart = FindProperty("_FlipbookStartFrame", props);
-		overlayFlipbookFrames = FindProperty("_FlipbookTotalFrames", props);
-		overlayFlipbookFPS = FindProperty("_FlipbookFPS", props);
-		overlayFlipbookRows = FindProperty("_FlipbookRows", props);
-		overlayFlipbookCols = FindProperty("_FlipbookColumns", props);
-		overlayCubemap = FindProperty("_OverlayCubemap", props);
-		overlayCubemapRotX = FindProperty("_OverlayCubemapRotationX", props);
-		overlayCubemapRotY = FindProperty("_OverlayCubemapRotationY", props);
-		overlayCubemapRotZ = FindProperty("_OverlayCubemapRotationZ", props);
-		overlayCubemapSpeedX = FindProperty("_OverlayCubemapSpeedX", props);
-		overlayCubemapSpeedY = FindProperty("_OverlayCubemapSpeedY", props);
-		overlayCubemapSpeedZ = FindProperty("_OverlayCubemapSpeedZ", props);
-		overlayColor = FindProperty("_OverlayColor", props);
-		overlayBlendAmount = FindProperty("_BlendAmount", props);
-		overlayBlendMode = FindProperty("_BlendMode", props);
-		
-		screenHueAdd = FindProperty("_HueAdd", props);
-		screenSaturationAdd = FindProperty("_SaturationAdd", props);
-		screenValueAdd = FindProperty("_ValueAdd", props);
-		screenHueMultiply = FindProperty("_HueMultiply", props);
-		screenSaturationMultiply = FindProperty("_SaturationMultiply", props);
-		screenValueMultiply = FindProperty("_ValueMultiply", props);
-		screenInversion = FindProperty("_InversionAmount", props);
-		screenColor = FindProperty("_Color", props);
-		screenColorBlendMode = FindProperty("_ScreenColorBlendMode", props);
-		
-		colorBurningToggle = FindProperty("_Burn", props);
-		colorBurningLow = FindProperty("_BurnLow", props);
-		colorBurningHigh = FindProperty("_BurnHigh", props);
-		
-		screenReprojection = FindProperty("_ScreenReprojection", props);
-		screenBoundaryHandling = FindProperty("_ScreenBoundaryHandling", props);
-		screenXOffsetR = FindProperty("_ScreenXOffsetR", props);
-		screenXOffsetG = FindProperty("_ScreenXOffsetG", props);
-		screenXOffsetB = FindProperty("_ScreenXOffsetB", props);
-		screenXOffsetA = FindProperty("_ScreenXOffsetA", props);
-		screenYOffsetR = FindProperty("_ScreenYOffsetR", props);
-		screenYOffsetG = FindProperty("_ScreenYOffsetG", props);
-		screenYOffsetB = FindProperty("_ScreenYOffsetB", props);
-		screenYOffsetA = FindProperty("_ScreenYOffsetA", props);
-		screenXMultiplierR = FindProperty("_ScreenXMultiplierR", props);
-		screenXMultiplierG = FindProperty("_ScreenXMultiplierG", props);
-		screenXMultiplierB = FindProperty("_ScreenXMultiplierB", props);
-		screenXMultiplierA = FindProperty("_ScreenXMultiplierA", props);
-		screenYMultiplierR = FindProperty("_ScreenYMultiplierR", props);
-		screenYMultiplierG = FindProperty("_ScreenYMultiplierG", props);
-		screenYMultiplierB = FindProperty("_ScreenYMultiplierB", props);
-		screenYMultiplierA = FindProperty("_ScreenYMultiplierA", props);
-		screenRotationAngle = FindProperty("_ScreenRotationAngle", props);
-		
-		distortionMask = FindProperty("_DistortionMask", props);
-		distortionMaskOpacity = FindProperty("_DistortionMaskOpacity", props);
-		overlayMask = FindProperty("_OverlayMask", props);
-		overlayMaskOpacity = FindProperty("_OverlayMaskOpacity", props);
-		overallMask = FindProperty("_OverallEffectMask", props);
-		overallMaskOpacity = FindProperty("_OverallEffectMaskOpacity", props);
-		overallMaskBlendMode = FindProperty("_OverallEffectMaskBlendMode", props);
-		overallAmpMask = FindProperty("_OverallAmplitudeMask", props);
-		overallAmpMaskOpacity = FindProperty("_OverallAmplitudeMaskOpacity", props);
-		
-		mirrorReflectionMode = FindProperty("_MirrorMode", props);
-		eyeSelector = FindProperty("_EyeSelector", props);
-		platformSelector = FindProperty("_PlatformSelector", props);
-		projectionType = FindProperty("_ProjectionType", props);
-		projectionRotX = FindProperty("_ProjectionRotX", props);
-		projectionRotY = FindProperty("_ProjectionRotY", props);
-		projectionRotZ = FindProperty("_ProjectionRotZ", props);
-	}
-	
-	public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties) {
-		FindProperties(properties);
-		
+	public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props) {
 		if (!initialized) {
 			customRenderQueue = (materialEditor.target as Material).shader.renderQueue;
 			rng = new System.Random();
@@ -383,74 +101,98 @@ public class CancerspaceInspector : ShaderGUI {
 		
 		CSCategory[] categories = new CSCategory[] {
 			new CSCategory(Styles.falloffSettingsTitle, defaultStyle, me => {
+				CSProperty falloffCurve = FindProperty("_FalloffCurve", props);
+				CSProperty falloffDepth = FindProperty("_DepthFalloff", props);
+				
 				DisplayRegularProperty(me, falloffCurve);
-				if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, falloffMinDistance);
-				DisplayRegularProperty(me, falloffMaxDistance);
+				if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_MinFalloff", props));
+				DisplayRegularProperty(me, FindProperty("_MaxFalloff", props));
 				DisplayRegularProperty(me, falloffDepth);
 				if (falloffDepth.prop.floatValue > .5) {
+					CSProperty falloffDepthCurve = FindProperty("_DepthFalloffCurve", props);
+					
 					DisplayRegularProperty(me, falloffDepthCurve);
-					if (falloffDepthCurve.prop.floatValue > .5) DisplayRegularProperty(me, falloffDepthMinDistance);
-					DisplayRegularProperty(me, falloffDepthMaxDistance);
+					if (falloffDepthCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_DepthMinFalloff", props));
+					DisplayRegularProperty(me, FindProperty("_DepthMaxFalloff", props));
 				}
 			}),
 			
 			new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {
-				DisplayFloatWithSliderMode(me, shakeXAmount);
-				DisplayFloatWithSliderMode(me, shakeYAmount);
-				DisplayFloatWithSliderMode(me, shakeXSpeed);
-				DisplayFloatWithSliderMode(me, shakeYSpeed);
-				DisplayFloatWithSliderMode(me, shakeAmplitude);
+				DisplayFloatWithSliderMode(me, FindProperty("_XShake", props));
+				DisplayFloatWithSliderMode(me, FindProperty("_YShake", props));
+				DisplayFloatWithSliderMode(me, FindProperty("_XShakeSpeed", props));
+				DisplayFloatWithSliderMode(me, FindProperty("_YShakeSpeed", props));
+				DisplayFloatWithSliderMode(me, FindProperty("_ShakeAmplitude", props));
 			}),
 			
 			new CSCategory(Styles.wobbleSettingsTitle, defaultStyle, me => {
-				DisplayFloatRangeProperty(me, wobbleXAmount);
-				DisplayFloatRangeProperty(me, wobbleYAmount);
-				DisplayFloatRangeProperty(me, wobbleXTiling);
-				DisplayFloatRangeProperty(me, wobbleYTiling);
-				DisplayFloatWithSliderMode(me, wobbleXSpeed);
-				DisplayFloatWithSliderMode(me, wobbleYSpeed);
+				DisplayFloatRangeProperty(me, FindProperty("_XWobbleAmount", props));
+				DisplayFloatRangeProperty(me, FindProperty("_YWobbleAmount", props));
+				DisplayFloatRangeProperty(me, FindProperty("_XWobbleTiling", props));
+				DisplayFloatRangeProperty(me, FindProperty("_YWobbleTiling", props));
+				DisplayFloatWithSliderMode(me, FindProperty("_XWobbleSpeed", props));
+				DisplayFloatWithSliderMode(me, FindProperty("_YWobbleSpeed", props));
 			}),
 			
 			new CSCategory(Styles.blurSettingsTitle, defaultStyle, me => {
-				DisplayFloatWithSliderMode(me, blurRadius);
-				DisplayIntSlider(me, blurSampling, 1, 5);
-				DisplayRegularProperty(me, blurSamplingAnimated);
+				DisplayFloatWithSliderMode(me, FindProperty("_BlurRadius", props));
+				DisplayIntSlider(me, FindProperty("_BlurSampling", props), 1, 5);
+				DisplayRegularProperty(me, FindProperty("_AnimatedSampling", props));
 			}),
 			
 			new CSCategory(Styles.distortionMapSettingsTitle, defaultStyle, me => {
+				CSProperty distortionType = FindProperty("_DistortionType", props);
+				CSProperty distortionMapRotation = FindProperty("_DistortionMapRotation", props);
+				CSProperty distortionAmplitude = FindProperty("_DistortionAmplitude", props);
+				CSProperty distortionRotation = FindProperty("_DistortionRotation", props);
+				CSProperty distortFlipbook = FindProperty("_DistortFlipbook", props);
+				
 				DisplayRegularProperty(me, distortionType);
-				DisplayRegularProperty(me, distortionTarget);
+				DisplayRegularProperty(me, FindProperty("_DistortionTarget", props));
+				
 				switch ((int) distortionType.prop.floatValue) {
 					case 0:
-						DisplayRegularProperty(me, distortionMap);
+						DisplayRegularProperty(me, FindProperty("_BumpMap", props));
 						DisplayFloatWithSliderMode(me, distortionMapRotation);
 						DisplayFloatWithSliderMode(me, distortionAmplitude);
 						DisplayFloatWithSliderMode(me, distortionRotation);
-						DisplayFloatWithSliderMode(me, distortionScrollSpeedX);
-						DisplayFloatWithSliderMode(me, distortionScrollSpeedY);
+						DisplayFloatWithSliderMode(me, FindProperty("_BumpMapScrollSpeedX", props));
+						DisplayFloatWithSliderMode(me, FindProperty("_BumpMapScrollSpeedY", props));
 						break;
 					case 1:
-						DisplayRegularProperty(me, meltMap);
+						DisplayRegularProperty(me, FindProperty("_MeltMap", props));
 						DisplayFloatWithSliderMode(me, distortionMapRotation);
 						DisplayFloatWithSliderMode(me, distortionAmplitude);
 						DisplayFloatWithSliderMode(me, distortionRotation);
-						DisplayFloatWithSliderMode(me, meltController);
-						DisplayFloatWithSliderMode(me, meltTimeScale);
+						DisplayFloatWithSliderMode(me, FindProperty("_MeltController", props));
+						DisplayFloatWithSliderMode(me, FindProperty("_MeltActivationScale", props));
 						break;
 				}
+				
 				DisplayRegularProperty(me, distortFlipbook);
+				
 				if (distortFlipbook.prop.floatValue != 0) {
-					DisplayIntField(me, distortFlipbookFrames);
-					DisplayIntField(me, distortFlipbookStart);
-					DisplayIntField(me, distortFlipbookRows);
-					DisplayIntField(me, distortFlipbookCols);
-					DisplayFloatProperty(me, distortFlipbookFPS);
+					DisplayIntField(me, FindProperty("_DistortFlipbookTotalFrames", props));
+					DisplayIntField(me, FindProperty("_DistortFlipbookStartFrame", props));
+					DisplayIntField(me, FindProperty("_DistortFlipbookRows", props));
+					DisplayIntField(me, FindProperty("_DistortFlipbookColumns", props));
+					DisplayFloatProperty(me, FindProperty("_DistortFlipbookFPS", props));
 				}
 				
 			}),
 			
 			new CSCategory(Styles.overlaySettingsTitle, defaultStyle, me => {
-				BlendModePopup(me, overlayBlendMode);
+				CSProperty overlayImageType = FindProperty("_OverlayImageType", props);
+				CSProperty overlayImage = FindProperty("_MainTex", props);
+				CSProperty overlayRotation = FindProperty("_MainTexRotation", props);
+				CSProperty overlayPixelate = FindProperty("_PixelatedSampling", props);
+				CSProperty overlayScrollSpeedX = FindProperty("_MainTexScrollSpeedX", props);
+				CSProperty overlayScrollSpeedY = FindProperty("_MainTexScrollSpeedY", props);
+				CSProperty overlayBoundary = FindProperty("_OverlayBoundaryHandling", props);
+				CSProperty overlayColor = FindProperty("_OverlayColor", props);
+				
+				BlendModePopup(me, FindProperty("_BlendMode", props));
+				
 				DisplayRegularProperty(me, overlayImageType);
 				switch ((int) overlayImageType.prop.floatValue) {
 					// TODO: replace these with proper enums so there's no magic numbers
@@ -475,40 +217,87 @@ public class CancerspaceInspector : ShaderGUI {
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
 						}
-						DisplayIntField(me, overlayFlipbookFrames);
-						DisplayIntField(me, overlayFlipbookStart);
-						DisplayIntField(me, overlayFlipbookRows);
-						DisplayIntField(me, overlayFlipbookCols);
-						DisplayFloatProperty(me, overlayFlipbookFPS);
+						DisplayIntField(me, FindProperty("_FlipbookTotalFrames", props));
+						DisplayIntField(me, FindProperty("_FlipbookStartFrame", props));
+						DisplayIntField(me, FindProperty("_FlipbookRows", props));
+						DisplayIntField(me, FindProperty("_FlipbookColumns", props));
+						DisplayFloatProperty(me, FindProperty("_FlipbookFPS", props));
 						break;
 					case 2:
-						DisplayRegularProperty(me, overlayCubemap);
+						DisplayRegularProperty(me, FindProperty("_OverlayCubemap", props));
 						DisplayColorProperty(me, overlayColor);
-						DisplayVec3WithSliderMode(me, Styles.cubeMapRotationText, overlayCubemapRotX, overlayCubemapRotY, overlayCubemapRotZ);
-						DisplayVec3WithSliderMode(me, Styles.cubeMapSpeedText, overlayCubemapSpeedX, overlayCubemapSpeedY, overlayCubemapSpeedZ);
+						DisplayVec3WithSliderMode(
+							me,
+							"Rotation",
+							FindProperty("_OverlayCubemapRotationX", props),
+							FindProperty("_OverlayCubemapRotationY", props),
+							FindProperty("_OverlayCubemapRotationZ", props)
+						);
+						DisplayVec3WithSliderMode(
+							me,
+							"Rotation Speed",
+							FindProperty("_OverlayCubemapSpeedX", props),
+							FindProperty("_OverlayCubemapSpeedY", props),
+							FindProperty("_OverlayCubemapSpeedZ", props)
+						);
 						break;
 				}
-				DisplayFloatRangeProperty(me, overlayBlendAmount);
+				
+				DisplayFloatRangeProperty(me, FindProperty("_BlendAmount", props));
 			}),
 			
 			new CSCategory(Styles.screenColorAdjustmentsTitle, defaultStyle, me => {
-				DisplayVec3WithSliderMode(me, Styles.hsvAddText, screenHueAdd, screenSaturationAdd, screenValueAdd);
-				DisplayVec3WithSliderMode(me, Styles.hsvMultiplyText, screenHueMultiply, screenSaturationMultiply, screenValueMultiply);
-				DisplayFloatRangeProperty(me, screenInversion);
-				DisplayColorProperty(me, screenColor);
-				BlendModePopup(me, screenColorBlendMode);
+				CSProperty colorBurningToggle = FindProperty("_Burn", props);
+				
+				DisplayVec3WithSliderMode(
+					me,
+					"HSV Add",
+					FindProperty("_HueAdd", props),
+					FindProperty("_SaturationAdd", props),
+					FindProperty("_ValueAdd", props)
+				);
+				DisplayVec3WithSliderMode(
+					me,
+					"HSV Multiply",
+					FindProperty("_HueMultiply", props),
+					FindProperty("_SaturationMultiply", props),
+					FindProperty("_ValueMultiply", props)
+				);
+				
+				DisplayFloatRangeProperty(me, FindProperty("_InversionAmount", props));
+				DisplayColorProperty(me, FindProperty("_Color", props));
+				BlendModePopup(me, FindProperty("_ScreenColorBlendMode", props));
+				
 				DisplayRegularProperty(me, colorBurningToggle);
 				if (colorBurningToggle.prop.floatValue == 1) {
-					DisplayFloatRangeProperty(me, colorBurningLow);
-					DisplayFloatRangeProperty(me, colorBurningHigh);
+					DisplayFloatRangeProperty(me, FindProperty("_BurnLow", props));
+					DisplayFloatRangeProperty(me, FindProperty("_BurnHigh", props));
 				}
 			}),
 			
 			new CSCategory(Styles.screenTransformTitle, defaultStyle, me => {
-				DisplayRegularProperty(me, screenBoundaryHandling);
-				DisplayRegularProperty(me, screenReprojection);
-				DisplayFloatWithSliderMode(me, zoomAmount);
-				DisplayRegularProperty(me, pixelationAmount);
+				DisplayRegularProperty(me, FindProperty("_ScreenBoundaryHandling", props));
+				DisplayRegularProperty(me, FindProperty("_ScreenReprojection", props));
+				DisplayFloatWithSliderMode(me, FindProperty("_Zoom", props));
+				DisplayRegularProperty(me, FindProperty("_Pixelation", props));
+				
+				CSProperty screenXOffsetR = FindProperty("_ScreenXOffsetR", props);
+				CSProperty screenXOffsetG = FindProperty("_ScreenXOffsetG", props);
+				CSProperty screenXOffsetB = FindProperty("_ScreenXOffsetB", props);
+				CSProperty screenXOffsetA = FindProperty("_ScreenXOffsetA", props);
+				CSProperty screenYOffsetR = FindProperty("_ScreenYOffsetR", props);
+				CSProperty screenYOffsetG = FindProperty("_ScreenYOffsetG", props);
+				CSProperty screenYOffsetB = FindProperty("_ScreenYOffsetB", props);
+				CSProperty screenYOffsetA = FindProperty("_ScreenYOffsetA", props);
+				CSProperty screenXMultiplierR = FindProperty("_ScreenXMultiplierR", props);
+				CSProperty screenXMultiplierG = FindProperty("_ScreenXMultiplierG", props);
+				CSProperty screenXMultiplierB = FindProperty("_ScreenXMultiplierB", props);
+				CSProperty screenXMultiplierA = FindProperty("_ScreenXMultiplierA", props);
+				CSProperty screenYMultiplierR = FindProperty("_ScreenYMultiplierR", props);
+				CSProperty screenYMultiplierG = FindProperty("_ScreenYMultiplierG", props);
+				CSProperty screenYMultiplierB = FindProperty("_ScreenYMultiplierB", props);
+				CSProperty screenYMultiplierA = FindProperty("_ScreenYMultiplierA", props);
+				
 				if (sliderMode) {
 					DisplayFloatRangeProperty(me, screenXOffsetA);
 					DisplayFloatRangeProperty(me, screenYOffsetA);
@@ -527,59 +316,86 @@ public class CancerspaceInspector : ShaderGUI {
 					DisplayFloatRangeProperty(me, screenXMultiplierB);
 					DisplayFloatRangeProperty(me, screenYMultiplierB);
 				} else {
-					DisplayVec4Field(me, Styles.screenXOffsetText, screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA);
-					DisplayVec4Field(me, Styles.screenYOffsetText, screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA);
-					DisplayVec4Field(me, Styles.screenXMultiplierText, screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA);
-					DisplayVec4Field(me, Styles.screenYMultiplierText, screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA);
+					DisplayVec4Field(me, "Screen X Offset (RGB)", screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA);
+					DisplayVec4Field(me, "Screen Y Offset (RGB)", screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA);
+					DisplayVec4Field(me, "Screen X Multiplier (RGB)", screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA);
+					DisplayVec4Field(me, "Screen Y Multiplier (RGB)", screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA);
 				}
-				DisplayFloatRangeProperty(me, screenRotationAngle);
+				DisplayFloatRangeProperty(me, FindProperty("_ScreenRotationAngle", props));
 			}),
 			
 			new CSCategory(Styles.targetObjectSettingsTitle, defaultStyle, me => {
-				DisplayVec4Field(me, Styles.targetObjectPositionText, objectPositionX, objectPositionY, objectPositionZ, objectPositionA);
-				DisplayVec3Field(me, Styles.targetObjectRotationText, objectRotationX, objectRotationY, objectRotationZ);
-				DisplayVec4Field(me, Styles.targetObjectScaleText, objectScaleX, objectScaleY, objectScaleZ, objectScaleA);
-				DisplayRegularProperty(me, puffiness);
+				DisplayVec4Field(
+					me,
+					"Position",
+					FindProperty("_ObjectPositionX", props),
+					FindProperty("_ObjectPositionY", props),
+					FindProperty("_ObjectPositionZ", props),
+					FindProperty("_ObjectPositionA", props)
+				);
+				DisplayVec3Field(
+					me,
+					"Rotation",
+					FindProperty("_ObjectRotationX", props),
+					FindProperty("_ObjectRotationY", props),
+					FindProperty("_ObjectRotationZ", props)
+				);
+				DisplayVec4Field(
+					me,
+					"Scale",
+					FindProperty("_ObjectScaleX", props),
+					FindProperty("_ObjectScaleY", props),
+					FindProperty("_ObjectScaleZ", props),
+					FindProperty("_ObjectScaleA", props)
+				);
+				DisplayRegularProperty(me, FindProperty("_Puffiness", props));
 			}),
 			
 			new CSCategory(Styles.stencilTitle, defaultStyle, me => {
-				DisplayIntSlider(me, stencilRef, 0, 255);
-				DisplayRegularProperty(me, stencilComp);
-				DisplayRegularProperty(me, stencilPass);
-				DisplayRegularProperty(me, stencilFail);
-				DisplayRegularProperty(me, stencilZFail);
-				DisplayIntSlider(me, stencilReadMask, 0, 255);
-				DisplayIntSlider(me, stencilWriteMask, 0, 255);
+				DisplayIntSlider(me, FindProperty("_StencilRef", props), 0, 255);
+				DisplayRegularProperty(me, FindProperty("_StencilComp", props));
+				DisplayRegularProperty(me, FindProperty("_StencilPassOp", props));
+				DisplayRegularProperty(me, FindProperty("_StencilFailOp", props));
+				DisplayRegularProperty(me, FindProperty("_StencilZFailOp", props));
+				DisplayIntSlider(me, FindProperty("_StencilReadMask", props), 0, 255);
+				DisplayIntSlider(me, FindProperty("_StencilWriteMask", props), 0, 255);
 			}),
 			
 			new CSCategory(Styles.maskingTitle, defaultStyle, me => {
-				DisplayRegularProperty(me, distortionMask);
-				DisplayFloatRangeProperty(me, distortionMaskOpacity);
+				DisplayRegularProperty(me, FindProperty("_DistortionMask", props));
+				DisplayFloatRangeProperty(me, FindProperty("_DistortionMaskOpacity", props));
 				
-				DisplayRegularProperty(me, overlayMask);
-				DisplayFloatRangeProperty(me, overlayMaskOpacity);
+				DisplayRegularProperty(me, FindProperty("_OverlayMask", props));
+				DisplayFloatRangeProperty(me, FindProperty("_OverlayMaskOpacity", props));
 				
-				DisplayRegularProperty(me, overallMask);
-				DisplayFloatRangeProperty(me, overallMaskOpacity);
-				BlendModePopup(me, overallMaskBlendMode);
+				DisplayRegularProperty(me, FindProperty("_OverallEffectMask", props));
+				DisplayFloatRangeProperty(me, FindProperty("_OverallEffectMaskOpacity", props));
+				BlendModePopup(me, FindProperty("_OverallEffectMaskBlendMode", props));
 
 				EditorGUILayout.Space();
 				
-				DisplayRegularProperty(me, overallAmpMask);
-				DisplayFloatRangeProperty(me, overallAmpMaskOpacity);
+				DisplayRegularProperty(me, FindProperty("_OverallAmplitudeMask", props));
+				DisplayFloatRangeProperty(me, FindProperty("_OverallAmplitudeMaskOpacity", props));
 			}),
 			
 			new CSCategory(Styles.miscSettingsTitle, defaultStyle, me => {
-				DisplayRegularProperty(me, cullMode);
-				DisplayRegularProperty(me, zTest);
-				DisplayRegularProperty(me, zWrite);
-				ShowColorMaskFlags(me, colorMask);
-				DisplayRegularProperty(me, mirrorReflectionMode);
-				DisplayRegularProperty(me, eyeSelector);
-				DisplayRegularProperty(me, platformSelector);
+				DisplayRegularProperty(me, FindProperty("_CullMode", props));
+				DisplayRegularProperty(me, FindProperty("_ZTest", props));
+				DisplayRegularProperty(me, FindProperty("_ZWrite", props));
+				ShowColorMaskFlags(me, FindProperty("_ColorMask", props));
+				DisplayRegularProperty(me, FindProperty("_MirrorMode", props));
+				DisplayRegularProperty(me, FindProperty("_EyeSelector", props));
+				DisplayRegularProperty(me, FindProperty("_PlatformSelector", props));
+				CSProperty projectionType = FindProperty("_ProjectionType", props);
 				DisplayRegularProperty(me, projectionType);
 				if (projectionType.prop.floatValue != 2) {
-					DisplayVec3WithSliderMode(me, Styles.projectionRotationText, projectionRotX, projectionRotY, projectionRotZ);
+					DisplayVec3WithSliderMode(
+						me,
+						Styles.projectionRotationText,
+						FindProperty("_ProjectionRotX", props),
+						FindProperty("_ProjectionRotY", props),
+						FindProperty("_ProjectionRotZ", props)
+					);
 				}
 			}),
 			
