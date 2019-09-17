@@ -223,7 +223,7 @@
 				float2 res = texelSizes.zw, invRes = texelSizes.xy;
 				
 				if (flipbook) {
-					currentFrame = floor(fmod(startFrame + _Time.y * fps, totalFrames));
+					currentFrame = floor(fmod(startFrame + fmod(_Time.y * fps, totalFrames), totalFrames));
 					invCR = 1 / cr;
 					res *= invCR;
 					invRes *= cr;
@@ -415,7 +415,7 @@
 				o.pos = UnityViewToClipPos(viewPos);
 				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
 				o.posOrigin.xy /= o.posOrigin.w;
-				o.cubemapSampler = rotateXYZ(o.posWorld - _WorldSpaceCameraPos, _OverlayCubemapRotation + _Time.y * _OverlayCubemapSpeed);
+				o.cubemapSampler = rotateXYZ(o.posWorld - _WorldSpaceCameraPos, _OverlayCubemapRotation + fmod(_Time.y * _OverlayCubemapSpeed, UNITY_TWO_PI));
 				o.uv = v.uv;
 				return o;
 			}
@@ -474,10 +474,8 @@
 				UNITY_LOOP for (int blurPass = 0; blurPass < _BlurSampling; ++blurPass) {
 					float2 blurNoiseRand = hash23(float3(grabUV, (float) blurPass));
 					
-					blurNoiseRand.x *= UNITY_TWO_PI;
-					
 					float s, c;
-					sincos(blurNoiseRand.x, s, c);
+					sincos(blurNoiseRand.x * UNITY_TWO_PI, s, c);
 					
 					// FIXME: does this line need VRFix? i think it might.
 					float2 sampleUV = grabUV + (blurNoiseRand.y * allAmp * _BlurRadius * float2(s, c)) / (_Garb_TexelSize.zw);
