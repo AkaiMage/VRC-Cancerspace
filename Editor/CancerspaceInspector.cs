@@ -32,6 +32,7 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string shouldRandomizeCheckboxText = "Allow randomization";
 		public static GUIContent overlayImageText = new GUIContent("Image Overlay", "The overlay image and color.");
 		public static string targetObjectSettingsTitle = "Target Object Settings";
+		public static string particleSystemSettingsTitle = "Particle System Settings";
 		public static string falloffSettingsTitle = "Falloff Settings";
 		public static string wobbleSettingsTitle = "Wave Distortion";
 		public static string blurSettingsTitle = "Blur";
@@ -114,6 +115,19 @@ public class CancerspaceInspector : ShaderGUI {
 					DisplayRegularProperty(me, falloffDepthCurve);
 					if (falloffDepthCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_DepthMinFalloff", props));
 					DisplayRegularProperty(me, FindProperty("_DepthMaxFalloff", props));
+				}
+			}),
+			
+			new CSCategory(Styles.particleSystemSettingsTitle, defaultStyle, me => {
+				CSProperty falloffCurve = FindProperty("_LifetimeFalloffCurve", props);
+				CSProperty falloff = FindProperty("_LifetimeFalloff", props);
+				
+				DisplayRegularProperty(me, FindProperty("_ParticleSystem", props));
+				DisplayRegularProperty(me, falloff);
+				if (falloff.prop.floatValue > .5) {
+					DisplayRegularProperty(me, falloffCurve);
+					if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_LifetimeMinFalloff", props));
+					DisplayRegularProperty(me, FindProperty("_LifetimeMaxFalloff", props));
 				}
 			}),
 			

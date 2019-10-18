@@ -137,6 +137,13 @@ sampler2D _OverallAmplitudeMask;
 float4 _OverallAmplitudeMask_ST;
 float _OverallAmplitudeMaskOpacity;
 
+int _ParticleSystem;
+int _LifetimeFalloff;
+float _LifetimeMinFalloff;
+float _LifetimeMaxFalloff;
+int _LifetimeFalloffCurve;
+
+
 int _EyeSelector;
 int _PlatformSelector;
 

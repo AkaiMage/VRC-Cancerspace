@@ -137,6 +137,12 @@
 		_ScreenYMultiplierA ("Screen Y Multiplier (All)", Range(-5, 5)) = 1
 		_ScreenRotationAngle ("Screen Rotation Angle", Range(-360, 360)) = 0
 		
+		[Toggle(_)] _ParticleSystem ("Is on Particle System?", Float) = 0
+		[Toggle(_)] _LifetimeFalloff ("Lifetime Falloff", Int) = 0
+		_LifetimeFalloffCurve ("Curve", Int) = 1
+		_LifetimeMinFalloff ("Min Falloff", Range(0,1)) = 0
+		_LifetimeMaxFalloff ("Max Falloff", Range(0,1)) = 1
+		
 		_DistortionMask ("Distortion Mask", 2D) = "white" {}
 		_DistortionMaskOpacity ("Opacity", Range(0, 1)) = 1
 		_OverlayMask ("Overlay Mask", 2D) = "white" {}
@@ -183,7 +189,8 @@
 			struct appdata {
 				float4 vertex : POSITION;
 				float3 normal : NORMAL;
-				float2 uv : TEXCOORD0;
+				float4 uv : TEXCOORD0;
+				float4 uv2 : TEXCOORD1;
 			};
 
 			struct v2f {
@@ -192,7 +199,7 @@
 				float4 projPos : TEXCOORD1;
 				float4 posOrigin : TEXCOORD2;
 				float3 cubemapSampler : TEXCOORD3;
-				float2 uv : TEXCOORD4;
+				float4 uv : TEXCOORD4;
 				float4 worldDir : TEXCOORD5;
 			};
 			
@@ -256,16 +263,21 @@
 				return uv;
 			}
 			
-			fixed calculateFalloffAmplitude(float2 screenUV, float depth) {
-				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
-				float effectDistance = length(viewVec);
+			fixed calculateFalloffAmplitude(float dist, float2 screenUV, float depth, float particleAge01) {
 				screenUV -= .5;
 				fixed4 amplitudeMaskContribution = tex2Dlod(_OverallAmplitudeMask, float4(TRANSFORM_TEX(screenUV, _OverallAmplitudeMask) + .5, 0, 0));
+				
+				fixed ageContribution = 1;
+				if (_LifetimeFalloff) {
+					ageContribution = calculateEffectAmplitudeFromFalloff(particleAge01, _LifetimeFalloffCurve, _LifetimeMinFalloff, _LifetimeMaxFalloff);
+				}
+				
 				fixed depthContribution = 1;
 				if (_DepthFalloff && depth != -1234) {
 					depthContribution = calculateEffectAmplitudeFromFalloff(depth, _DepthFalloffCurve, _DepthMinFalloff, _DepthMaxFalloff);
 				}
-				return calculateEffectAmplitudeFromFalloff(effectDistance, _FalloffCurve, _MinFalloff, _MaxFalloff) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity * depthContribution;
+				
+				return calculateEffectAmplitudeFromFalloff(dist, _FalloffCurve, _MinFalloff, _MaxFalloff) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity * depthContribution * ageContribution;
 			}
 			
 			float2 calculateDistortion(float falloffAmplitude, float2 screenSpaceOverlayUV) {
@@ -359,6 +371,10 @@
 			v2f vert (appdata v) {
 				v2f o;
 				
+				float2 uv = v.uv.xy;
+				float3 particleCenter = float3(v.uv.zw, v.uv2.x);
+				float particleAge01 = v.uv2.y;
+				
 				bool inMirror = isInMirror();
 				bool noRender = 
 					_MirrorMode == MIRROR_DISABLE && inMirror
@@ -394,6 +410,13 @@
 				
 				float4 viewPos = float4(UnityWorldToViewPos(float4(o.posWorld, 1)), 1);
 				
+				float distanceForFalloff = 0;
+				if (_ParticleSystem) {
+					distanceForFalloff = distance(_WorldSpaceCameraPos, particleCenter);//mul(unity_ObjectToWorld, float4(particleCenter, 1)).xyz);
+				} else {
+					distanceForFalloff = distance(_WorldSpaceCameraPos, mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz);
+				}
+				
 				UNITY_BRANCH if (!_ScreenReprojection) {
 					int projectionType = _ProjectionType;
 					if (projectionType == PROJECTION_TRIPLANAR) projectionType = PROJECTION_FLAT;
@@ -407,7 +430,7 @@
 						_Garb_TexelSize.zw
 					);
 					
-					float rotation = calculateFalloffAmplitude(screenUV, -1234) * _ScreenRotationAngle;
+					float rotation = calculateFalloffAmplitude(distanceForFalloff, screenUV, -1234, particleAge01) * _ScreenRotationAngle;
 					viewPos.xy = rotate(viewPos.xy, rotation);
 					o.posWorld = rotateAxis(o.posWorld, UNITY_MATRIX_IT_MV[2].xyz, rotation);
 				}
@@ -416,7 +439,10 @@
 				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
 				o.posOrigin.xy /= o.posOrigin.w;
 				o.cubemapSampler = rotateXYZ(o.posWorld - _WorldSpaceCameraPos, _OverlayCubemapRotation + fmod(_Time.y * _OverlayCubemapSpeed, UNITY_TWO_PI));
-				o.uv = v.uv;
+				
+				o.uv.xy = v.uv.xy;
+				o.uv.z = distanceForFalloff;
+				o.uv.w = particleAge01;
 				return o;
 			}
 			
@@ -424,7 +450,8 @@
 				float timeCircularMod = fmod(_Time.y, UNITY_TWO_PI);
 				
 				float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
-				float effectDistance = length(viewVec);
+				float effectDistance = i.uv.z;
+				float particleAge01 = i.uv.w;
 				
 				float depth = calculateCameraDepth(i.projPos.xy, i.worldDir, rcp(i.pos.w));
 				
@@ -443,13 +470,13 @@
 				float2 screenSpaceOverlayUV = calculateScreenUVs(
 					_ProjectionType, 
 					rotateProjectionWorld(i.posWorld, _ProjectionRot), 
-					i.uv, 
+					i.uv.xy, 
 					triplanarWorld, 
 					triplanarNormal, 
 					_Garb_TexelSize.zw
 				);
 				
-				fixed allAmp = calculateFalloffAmplitude(screenSpaceOverlayUV, depth);
+				fixed allAmp = calculateFalloffAmplitude(effectDistance, screenSpaceOverlayUV, depth, particleAge01);
 				float2 distortion = calculateDistortion(allAmp, screenSpaceOverlayUV);
 				float4 color = calculateOverlayColor(screenSpaceOverlayUV, distortion, i.cubemapSampler);
 				
