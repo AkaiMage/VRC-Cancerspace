@@ -438,7 +438,7 @@
 				o.pos = UnityViewToClipPos(viewPos);
 				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
 				o.posOrigin.xy /= o.posOrigin.w;
-				o.cubemapSampler = rotateXYZ(o.posWorld - _WorldSpaceCameraPos, _OverlayCubemapRotation + fmod(_Time.y * _OverlayCubemapSpeed, UNITY_TWO_PI));
+				o.cubemapSampler = rotateXYZ(o.posWorld - _WorldSpaceCameraPos, _OverlayCubemapRotation + fmod(_Time.y * _OverlayCubemapSpeed, 360));
 				
 				o.uv.xy = v.uv.xy;
 				o.uv.z = distanceForFalloff;
