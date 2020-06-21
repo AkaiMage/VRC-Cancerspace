@@ -147,4 +147,11 @@ int _LifetimeFalloffCurve;
 int _EyeSelector;
 int _PlatformSelector;
 
+
+float _ColorMinFalloff;
+float _ColorMaxFalloff;
+float _ColorFalloffCurve;
+int _ColorFalloff;
+uint _ColorChannelForFalloff;
+
 #endif

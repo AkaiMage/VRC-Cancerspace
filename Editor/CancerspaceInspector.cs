@@ -104,6 +104,7 @@ public class CancerspaceInspector : ShaderGUI {
 			new CSCategory(Styles.falloffSettingsTitle, defaultStyle, me => {
 				CSProperty falloffCurve = FindProperty("_FalloffCurve", props);
 				CSProperty falloffDepth = FindProperty("_DepthFalloff", props);
+				CSProperty falloffColor = FindProperty("_ColorFalloff", props);
 				
 				DisplayRegularProperty(me, falloffCurve);
 				if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_MinFalloff", props));
@@ -115,6 +116,15 @@ public class CancerspaceInspector : ShaderGUI {
 					DisplayRegularProperty(me, falloffDepthCurve);
 					if (falloffDepthCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_DepthMinFalloff", props));
 					DisplayRegularProperty(me, FindProperty("_DepthMaxFalloff", props));
+				}
+				DisplayRegularProperty(me, falloffColor);
+				if (falloffColor.prop.floatValue > .5) {
+					CSProperty falloffColorCurve = FindProperty("_ColorFalloffCurve", props);
+
+					DisplayRegularProperty(me, FindProperty("_ColorChannelForFalloff", props));
+					DisplayRegularProperty(me, falloffColorCurve);
+					if (falloffColorCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_ColorMinFalloff", props));
+					DisplayRegularProperty(me, FindProperty("_ColorMaxFalloff", props));
 				}
 			}),
 			

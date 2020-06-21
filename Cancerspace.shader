@@ -39,6 +39,11 @@
 		_DepthMinFalloff ("Min Distance", Float) = 30
 		_DepthMaxFalloff ("Max Distance", Float) = 60
 		[Enum(Sharp, 0, Linear, 1, Smooth, 2)] _DepthFalloffCurve ("Curve", Int) = 2
+		[Toggle(_)] _ColorFalloff ("Vertex-Color Falloff", Int) = 0
+		_ColorMinFalloff ("Min Falloff", Range(0, 1)) = 0
+		_ColorMaxFalloff ("Max Falloff", Range(0, 1)) = 1
+		[Enum(Sharp, 0, Linear, 1, Smooth, 2)] _ColorFalloffCurve ("Curve", Int) = 2
+		[Enum(Red, 0, Green, 1, Blue, 2, Alpha, 3)] _ColorChannelForFalloff ("Color Channel to use", Int) = 3
 		
 		_BlurRadius ("Blur Radius", Range(0, 50)) = 0
 		_BlurSampling ("Blur Sampling", Range(1, 5)) = 1
@@ -139,7 +144,7 @@
 		
 		[Toggle(_)] _ParticleSystem ("Is on Particle System?", Float) = 0
 		[Toggle(_)] _LifetimeFalloff ("Lifetime Falloff", Int) = 0
-		_LifetimeFalloffCurve ("Curve", Int) = 1
+		[Enum(Sharp, 0, Linear, 1, Smooth, 2)] _LifetimeFalloffCurve ("Curve", Int) = 1
 		_LifetimeMinFalloff ("Min Falloff", Range(0,1)) = 0
 		_LifetimeMaxFalloff ("Max Falloff", Range(0,1)) = 1
 		
@@ -191,6 +196,7 @@
 				float3 normal : NORMAL;
 				float4 uv : TEXCOORD0;
 				float4 uv2 : TEXCOORD1;
+				float4 color : COLOR;
 			};
 
 			struct v2f {
@@ -201,6 +207,7 @@
 				float3 cubemapSampler : TEXCOORD3;
 				float4 uv : TEXCOORD4;
 				float4 worldDir : TEXCOORD5;
+				float4 color : TEXCOORD6;
 			};
 			
 			#include "CGInclude/CSProps.cginc"
@@ -263,7 +270,7 @@
 				return uv;
 			}
 			
-			fixed calculateFalloffAmplitude(float dist, float2 screenUV, float depth, float particleAge01) {
+			fixed calculateFalloffAmplitude(float dist, float2 screenUV, float4 color, float depth, float particleAge01) {
 				screenUV -= .5;
 				fixed4 amplitudeMaskContribution = tex2Dlod(_OverallAmplitudeMask, float4(TRANSFORM_TEX(screenUV, _OverallAmplitudeMask) + .5, 0, 0));
 				
@@ -276,8 +283,13 @@
 				if (_DepthFalloff && depth != -1234) {
 					depthContribution = calculateEffectAmplitudeFromFalloff(depth, _DepthFalloffCurve, _DepthMinFalloff, _DepthMaxFalloff);
 				}
+
+				fixed colorContribution = 1;
+				if (_ColorFalloff) {
+					colorContribution = calculateEffectAmplitudeFromFalloff(color[_ColorChannelForFalloff], _ColorFalloffCurve, _ColorMinFalloff, _ColorMaxFalloff);
+				}
 				
-				return calculateEffectAmplitudeFromFalloff(dist, _FalloffCurve, _MinFalloff, _MaxFalloff) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity * depthContribution * ageContribution;
+				return calculateEffectAmplitudeFromFalloff(dist, _FalloffCurve, _MinFalloff, _MaxFalloff) * amplitudeMaskContribution.r * amplitudeMaskContribution.a * _OverallAmplitudeMaskOpacity * depthContribution * ageContribution * colorContribution;
 			}
 			
 			float2 calculateDistortion(float falloffAmplitude, float2 screenSpaceOverlayUV) {
@@ -430,7 +442,7 @@
 						_Garb_TexelSize.zw
 					);
 					
-					float rotation = calculateFalloffAmplitude(distanceForFalloff, screenUV, -1234, particleAge01) * _ScreenRotationAngle;
+					float rotation = calculateFalloffAmplitude(distanceForFalloff, screenUV, v.color, -1234, particleAge01) * _ScreenRotationAngle;
 					viewPos.xy = rotate(viewPos.xy, rotation);
 					o.posWorld = rotateAxis(o.posWorld, UNITY_MATRIX_IT_MV[2].xyz, rotation);
 				}
@@ -443,6 +455,7 @@
 				o.uv.xy = v.uv.xy;
 				o.uv.z = distanceForFalloff;
 				o.uv.w = particleAge01;
+				o.color = v.color;
 				return o;
 			}
 			
@@ -476,7 +489,7 @@
 					_Garb_TexelSize.zw
 				);
 				
-				fixed allAmp = calculateFalloffAmplitude(effectDistance, screenSpaceOverlayUV, depth, particleAge01);
+				fixed allAmp = calculateFalloffAmplitude(effectDistance, screenSpaceOverlayUV, i.color, depth, particleAge01);
 				float2 distortion = calculateDistortion(allAmp, screenSpaceOverlayUV);
 				float4 color = calculateOverlayColor(screenSpaceOverlayUV, distortion, i.cubemapSampler);
 				
