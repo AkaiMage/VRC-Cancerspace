@@ -203,7 +203,7 @@
 				float4 pos : SV_POSITION;
 				float3 posWorld : TEXCOORD0;
 				float4 projPos : TEXCOORD1;
-				float4 posOrigin : TEXCOORD2;
+				float4 depthPos : TEXCOORD2;
 				float3 cubemapSampler : TEXCOORD3;
 				float4 uv : TEXCOORD4;
 				float4 worldDir : TEXCOORD5;
@@ -416,7 +416,8 @@
 				
 				o.posWorld = mul(unity_ObjectToWorld, v.vertex).xyz;
 				float4 vertexIntended = UnityObjectToClipPos(v.vertex);
-				o.projPos = ComputeScreenPos(vertexIntended);
+				o.projPos = ComputeGrabScreenPos(vertexIntended);
+				o.depthPos = ComputeScreenPos(vertexIntended);
 				o.worldDir.xyz = o.posWorld - _WorldSpaceCameraPos;
 				o.worldDir.w = dot(vertexIntended, CalculateFrustumCorrection());
 				
@@ -448,8 +449,6 @@
 				}
 				
 				o.pos = UnityViewToClipPos(viewPos);
-				o.posOrigin = ComputeScreenPos(UnityObjectToClipPos(float4(0,0,0,1)));
-				o.posOrigin.xy /= o.posOrigin.w;
 				o.cubemapSampler = rotateXYZ(o.posWorld - _WorldSpaceCameraPos, _OverlayCubemapRotation + fmod(_Time.y * _OverlayCubemapSpeed, 360));
 				
 				o.uv.xy = v.uv.xy;
@@ -466,7 +465,7 @@
 				float effectDistance = i.uv.z;
 				float particleAge01 = i.uv.w;
 				
-				float depth = calculateCameraDepth(i.projPos.xy, i.worldDir, rcp(i.pos.w));
+				float depth = calculateCameraDepth(i.depthPos.xy, i.worldDir, rcp(i.pos.w));
 				
 				float VRFix = 1;
 				#if defined(USING_STEREO_MATRICES)
@@ -495,11 +494,13 @@
 				
 				float2 grabUV = _ScreenReprojection ? screenSpaceOverlayUV : (i.projPos.xy / i.projPos.w);
 				
-				if (distance(i.posOrigin.xy, saturate(i.posOrigin.xy)) == 0) {
-					grabUV -= i.posOrigin.xy;
+				float3 originPos = ComputeGrabScreenPos(UnityObjectToClipPos(float4(0,0,0,1))).xyw;
+				originPos.xy /= originPos.z;
+				if (distance(originPos.xy, saturate(originPos.xy)) == 0) {
+					grabUV -= originPos.xy;
 					_Zoom = lerp(1, _Zoom, saturate(-dot(normalize(viewVec), UNITY_MATRIX_V[2].xyz)));
 					grabUV *= lerp(1, _Zoom, allAmp);
-					grabUV += i.posOrigin.xy;
+					grabUV += originPos.xy;
 				}
 				_Pixelation *= allAmp;
 				if (_Pixelation > 0) grabUV = floor(grabUV / _Pixelation) * _Pixelation;
