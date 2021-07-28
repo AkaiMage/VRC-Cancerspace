@@ -212,9 +212,10 @@ public class CancerspaceInspector : ShaderGUI {
 				CSProperty overlayPixelate = FindProperty("_PixelatedSampling", props);
 				CSProperty overlayScrollSpeedX = FindProperty("_MainTexScrollSpeedX", props);
 				CSProperty overlayScrollSpeedY = FindProperty("_MainTexScrollSpeedY", props);
+				CSProperty overlayMaxDistance = FindProperty("_MainTexMaxDistance", props);
 				CSProperty overlayBoundary = FindProperty("_OverlayBoundaryHandling", props);
 				CSProperty overlayColor = FindProperty("_OverlayColor", props);
-				
+				CSProperty projectionType = FindProperty("_ProjectionType", props);
 				BlendModePopup(me, FindProperty("_BlendMode", props));
 				
 				DisplayRegularProperty(me, overlayImageType);
@@ -230,6 +231,10 @@ public class CancerspaceInspector : ShaderGUI {
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
 						}
+						if (projectionType.prop.floatValue == 3) {
+							DisplayFloatWithSliderMode(me, overlayMaxDistance);
+							DisplayRegularProperty(me, FindProperty("_WallsUvFlip", props));
+						}
 						break;
 					case 1:
 						DisplayRegularProperty(me, overlayBoundary);
@@ -241,6 +246,10 @@ public class CancerspaceInspector : ShaderGUI {
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
 							DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
 						}
+                        if (projectionType.prop.floatValue == 3) {
+                            DisplayFloatWithSliderMode(me, overlayMaxDistance);
+                        }
+
 						DisplayIntField(me, FindProperty("_FlipbookTotalFrames", props));
 						DisplayIntField(me, FindProperty("_FlipbookStartFrame", props));
 						DisplayIntField(me, FindProperty("_FlipbookRows", props));

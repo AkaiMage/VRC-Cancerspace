@@ -90,6 +90,8 @@
 		_MainTexRotation ("Rotation", Range(0, 360)) = 0
 		_MainTexScrollSpeedX ("Scroll Speed X", Range(-2, 2)) = 0
 		_MainTexScrollSpeedY ("Scroll Speed Y", Range(-2, 2)) = 0
+		_MainTexMaxDistance ("Max Distance", Range(0.003, .9)) = 0.003
+        [Toggle(_)] _WallsUvFlip ("Flip UV for the opposite side", Int) = 0
 		[NoScaleOffset] _OverlayCubemap ("Cubemap Overlay", Cube) = "white" {}
 		[HDR] _OverlayColor ("Overlay Color", Color) = (1,1,1,1)
 		_FlipbookTotalFrames ("Total Frames", Int) = 0
@@ -256,7 +258,7 @@
 						uv = saturate(uv);
 						break;
 					case BOUNDARYMODE_REPEAT:
-						uv = frac(uv + frac(_Time.yy * uvScrollSpeed));
+						uv += _Time.yy * uvScrollSpeed;
 						break;
 				}
 				
@@ -370,7 +372,7 @@
 							if (_OverlayBoundaryHandling == BOUNDARYMODE_SCREEN && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
 								return 0;
 							} else {
-								return tex2Dlod(_MainTex, float4(uv, 0, 0)) * _OverlayColor;
+								return tex2D(_MainTex, uv) * _OverlayColor;
 							}
 						}
 					case OVERLAY_CUBEMAP:

@@ -42,6 +42,7 @@ sampler2D _MainTex;
 float4 _MainTex_TexelSize;
 float4 _MainTex_ST;
 float _MainTexScrollSpeedX, _MainTexScrollSpeedY;
+float _MainTexMaxDistance;
 float _MainTexRotation;
 
 int _PixelatedSampling;
@@ -95,6 +96,7 @@ float _ObjectScaleX, _ObjectScaleY, _ObjectScaleZ, _ObjectScaleA;
 int _MirrorMode;
 
 int _ScreenReprojection;
+int _WallsUvFlip;
 float _ScreenXOffsetR, _ScreenXOffsetG, _ScreenXOffsetB, _ScreenXOffsetA;
 float _ScreenYOffsetR, _ScreenYOffsetG, _ScreenYOffsetB, _ScreenYOffsetA;
 float _ScreenXMultiplierR, _ScreenXMultiplierG, _ScreenXMultiplierB, _ScreenXMultiplierA;
