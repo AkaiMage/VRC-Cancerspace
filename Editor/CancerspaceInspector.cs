@@ -48,6 +48,7 @@ public class CancerspaceInspector : ShaderGUI {
 		public static string renderQueueExportTitle = "Custom Render Queue Exporter";
 		public static string customRenderQueueSliderText = "Custom Render Queue";
 		public static string exportCustomRenderQueueButtonText = "Export shader with queue and replace in this material";
+		public static string blendSettingsTitle = "Blending";
 		
 		public static readonly string[] blendNames = Enum.GetNames(typeof(BlendMode));
 	}
@@ -79,14 +80,35 @@ public class CancerspaceInspector : ShaderGUI {
 	
 	protected static bool sliderMode = true;
 	protected static int categoryExpansionFlags;
+	// i'm sorry, this was the laziest way i could tack this on
+	protected static int categoryExpansionFlagsCancerfree;
 	private static bool showRandomizerOptions = false;
 	private static HashSet<String> propertiesWithRandomization = new HashSet<String>();
 	
 	protected int customRenderQueue;
 	protected bool initialized;
+	protected bool cancerfree;
 	
 	private bool randomizingCurrentPass;
 	private System.Random rng;
+	
+	private void SetExpansionFlags(int flags) {
+		if (cancerfree) {
+			categoryExpansionFlagsCancerfree = flags;
+		} else {
+			categoryExpansionFlags = flags;
+		}
+	}
+	
+	private int GetExpansionFlags() {
+		int flags;
+		if (cancerfree) {
+			flags = categoryExpansionFlagsCancerfree;
+		} else {
+			flags = categoryExpansionFlags;
+		}
+		return flags;
+	}
 	
 	public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props) {
 		if (!initialized) {
@@ -94,385 +116,381 @@ public class CancerspaceInspector : ShaderGUI {
 			rng = new System.Random();
 			initialized = true;
 		}
+		cancerfree = (materialEditor.target as Material).shader.name.Contains("Cancerfree");
 		
 		GUIStyle defaultStyle = new GUIStyle(EditorStyles.foldout);
 		defaultStyle.fontStyle = FontStyle.Bold;
 		defaultStyle.onNormal = EditorStyles.boldLabel.onNormal;
 		defaultStyle.onFocused = EditorStyles.boldLabel.onFocused;
 		
-		CSCategory[] categories = new CSCategory[] {
-			new CSCategory(Styles.falloffSettingsTitle, defaultStyle, me => {
-				CSProperty falloffCurve = FindProperty("_FalloffCurve", props);
-				CSProperty falloffDepth = FindProperty("_DepthFalloff", props);
-				CSProperty falloffColor = FindProperty("_ColorFalloff", props);
+		List<CSCategory> categories = new List<CSCategory>();
+		categories.Add(new CSCategory(Styles.falloffSettingsTitle, defaultStyle, me => {
+			CSProperty falloffCurve = FindProperty("_FalloffCurve", props);
+			CSProperty falloffDepth = FindProperty("_DepthFalloff", props);
+			CSProperty falloffColor = FindProperty("_ColorFalloff", props);
+			
+			DisplayRegularProperty(me, falloffCurve);
+			if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_MinFalloff", props));
+			DisplayRegularProperty(me, FindProperty("_MaxFalloff", props));
+			DisplayRegularProperty(me, falloffDepth);
+			if (falloffDepth.prop.floatValue > .5) {
+				CSProperty falloffDepthCurve = FindProperty("_DepthFalloffCurve", props);
 				
+				DisplayRegularProperty(me, falloffDepthCurve);
+				if (falloffDepthCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_DepthMinFalloff", props));
+				DisplayRegularProperty(me, FindProperty("_DepthMaxFalloff", props));
+			}
+			DisplayRegularProperty(me, falloffColor);
+			if (falloffColor.prop.floatValue > .5) {
+				CSProperty falloffColorCurve = FindProperty("_ColorFalloffCurve", props);
+
+				DisplayRegularProperty(me, FindProperty("_ColorChannelForFalloff", props));
+				DisplayRegularProperty(me, falloffColorCurve);
+				if (falloffColorCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_ColorMinFalloff", props));
+				DisplayRegularProperty(me, FindProperty("_ColorMaxFalloff", props));
+			}
+		}));
+		categories.Add(new CSCategory(Styles.particleSystemSettingsTitle, defaultStyle, me => {
+			CSProperty falloffCurve = FindProperty("_LifetimeFalloffCurve", props);
+			CSProperty falloff = FindProperty("_LifetimeFalloff", props);
+			
+			DisplayRegularProperty(me, FindProperty("_ParticleSystem", props));
+			DisplayRegularProperty(me, falloff);
+			if (falloff.prop.floatValue > .5) {
 				DisplayRegularProperty(me, falloffCurve);
-				if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_MinFalloff", props));
-				DisplayRegularProperty(me, FindProperty("_MaxFalloff", props));
-				DisplayRegularProperty(me, falloffDepth);
-				if (falloffDepth.prop.floatValue > .5) {
-					CSProperty falloffDepthCurve = FindProperty("_DepthFalloffCurve", props);
-					
-					DisplayRegularProperty(me, falloffDepthCurve);
-					if (falloffDepthCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_DepthMinFalloff", props));
-					DisplayRegularProperty(me, FindProperty("_DepthMaxFalloff", props));
-				}
-				DisplayRegularProperty(me, falloffColor);
-				if (falloffColor.prop.floatValue > .5) {
-					CSProperty falloffColorCurve = FindProperty("_ColorFalloffCurve", props);
-
-					DisplayRegularProperty(me, FindProperty("_ColorChannelForFalloff", props));
-					DisplayRegularProperty(me, falloffColorCurve);
-					if (falloffColorCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_ColorMinFalloff", props));
-					DisplayRegularProperty(me, FindProperty("_ColorMaxFalloff", props));
-				}
-			}),
+				if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_LifetimeMinFalloff", props));
+				DisplayRegularProperty(me, FindProperty("_LifetimeMaxFalloff", props));
+			}
+		}));
+		if (!cancerfree) categories.Add(new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {
+			DisplayFloatWithSliderMode(me, FindProperty("_XShake", props));
+			DisplayFloatWithSliderMode(me, FindProperty("_YShake", props));
+			DisplayFloatWithSliderMode(me, FindProperty("_XShakeSpeed", props));
+			DisplayFloatWithSliderMode(me, FindProperty("_YShakeSpeed", props));
+			DisplayFloatWithSliderMode(me, FindProperty("_ShakeAmplitude", props));
+		}));
+		if (!cancerfree) categories.Add(new CSCategory(Styles.wobbleSettingsTitle, defaultStyle, me => {
+			DisplayFloatRangeProperty(me, FindProperty("_XWobbleAmount", props));
+			DisplayFloatRangeProperty(me, FindProperty("_YWobbleAmount", props));
+			DisplayFloatRangeProperty(me, FindProperty("_XWobbleTiling", props));
+			DisplayFloatRangeProperty(me, FindProperty("_YWobbleTiling", props));
+			DisplayFloatWithSliderMode(me, FindProperty("_XWobbleSpeed", props));
+			DisplayFloatWithSliderMode(me, FindProperty("_YWobbleSpeed", props));
+		}));
+		if (!cancerfree) categories.Add(new CSCategory(Styles.blurSettingsTitle, defaultStyle, me => {
+			DisplayFloatWithSliderMode(me, FindProperty("_BlurRadius", props));
+			DisplayIntSlider(me, FindProperty("_BlurSampling", props), 1, 5);
+			DisplayRegularProperty(me, FindProperty("_AnimatedSampling", props));
+		}));
+		if (!cancerfree) categories.Add(new CSCategory(Styles.distortionMapSettingsTitle, defaultStyle, me => {
+			CSProperty distortionType = FindProperty("_DistortionType", props);
+			CSProperty distortionMapRotation = FindProperty("_DistortionMapRotation", props);
+			CSProperty distortionAmplitude = FindProperty("_DistortionAmplitude", props);
+			CSProperty distortionRotation = FindProperty("_DistortionRotation", props);
+			CSProperty distortFlipbook = FindProperty("_DistortFlipbook", props);
 			
-			new CSCategory(Styles.particleSystemSettingsTitle, defaultStyle, me => {
-				CSProperty falloffCurve = FindProperty("_LifetimeFalloffCurve", props);
-				CSProperty falloff = FindProperty("_LifetimeFalloff", props);
-				
-				DisplayRegularProperty(me, FindProperty("_ParticleSystem", props));
-				DisplayRegularProperty(me, falloff);
-				if (falloff.prop.floatValue > .5) {
-					DisplayRegularProperty(me, falloffCurve);
-					if (falloffCurve.prop.floatValue > .5) DisplayRegularProperty(me, FindProperty("_LifetimeMinFalloff", props));
-					DisplayRegularProperty(me, FindProperty("_LifetimeMaxFalloff", props));
-				}
-			}),
+			DisplayRegularProperty(me, distortionType);
+			DisplayRegularProperty(me, FindProperty("_DistortionTarget", props));
 			
-			new CSCategory(Styles.screenShakeSettingsTitle, defaultStyle, me => {
-				DisplayFloatWithSliderMode(me, FindProperty("_XShake", props));
-				DisplayFloatWithSliderMode(me, FindProperty("_YShake", props));
-				DisplayFloatWithSliderMode(me, FindProperty("_XShakeSpeed", props));
-				DisplayFloatWithSliderMode(me, FindProperty("_YShakeSpeed", props));
-				DisplayFloatWithSliderMode(me, FindProperty("_ShakeAmplitude", props));
-			}),
+			switch ((int) distortionType.prop.floatValue) {
+				case 0:
+					DisplayRegularProperty(me, FindProperty("_BumpMap", props));
+					DisplayFloatWithSliderMode(me, distortionMapRotation);
+					DisplayFloatWithSliderMode(me, distortionAmplitude);
+					DisplayFloatWithSliderMode(me, distortionRotation);
+					DisplayFloatWithSliderMode(me, FindProperty("_BumpMapScrollSpeedX", props));
+					DisplayFloatWithSliderMode(me, FindProperty("_BumpMapScrollSpeedY", props));
+					break;
+				case 1:
+					DisplayRegularProperty(me, FindProperty("_MeltMap", props));
+					DisplayFloatWithSliderMode(me, distortionMapRotation);
+					DisplayFloatWithSliderMode(me, distortionAmplitude);
+					DisplayFloatWithSliderMode(me, distortionRotation);
+					DisplayFloatWithSliderMode(me, FindProperty("_MeltController", props));
+					DisplayFloatWithSliderMode(me, FindProperty("_MeltActivationScale", props));
+					break;
+			}
 			
-			new CSCategory(Styles.wobbleSettingsTitle, defaultStyle, me => {
-				DisplayFloatRangeProperty(me, FindProperty("_XWobbleAmount", props));
-				DisplayFloatRangeProperty(me, FindProperty("_YWobbleAmount", props));
-				DisplayFloatRangeProperty(me, FindProperty("_XWobbleTiling", props));
-				DisplayFloatRangeProperty(me, FindProperty("_YWobbleTiling", props));
-				DisplayFloatWithSliderMode(me, FindProperty("_XWobbleSpeed", props));
-				DisplayFloatWithSliderMode(me, FindProperty("_YWobbleSpeed", props));
-			}),
+			DisplayRegularProperty(me, distortFlipbook);
 			
-			new CSCategory(Styles.blurSettingsTitle, defaultStyle, me => {
-				DisplayFloatWithSliderMode(me, FindProperty("_BlurRadius", props));
-				DisplayIntSlider(me, FindProperty("_BlurSampling", props), 1, 5);
-				DisplayRegularProperty(me, FindProperty("_AnimatedSampling", props));
-			}),
+			if (distortFlipbook.prop.floatValue != 0) {
+				DisplayIntField(me, FindProperty("_DistortFlipbookTotalFrames", props));
+				DisplayIntField(me, FindProperty("_DistortFlipbookStartFrame", props));
+				DisplayIntField(me, FindProperty("_DistortFlipbookRows", props));
+				DisplayIntField(me, FindProperty("_DistortFlipbookColumns", props));
+				DisplayFloatProperty(me, FindProperty("_DistortFlipbookFPS", props));
+			}
+				
+		}));
+		categories.Add(new CSCategory(Styles.overlaySettingsTitle, defaultStyle, me => {
+			CSProperty overlayImageType = FindProperty("_OverlayImageType", props);
+			CSProperty overlayImage = FindProperty("_MainTex", props);
+			CSProperty overlayRotation = FindProperty("_MainTexRotation", props);
+			CSProperty overlayPixelate = FindProperty("_PixelatedSampling", props);
+			CSProperty overlayScrollSpeedX = FindProperty("_MainTexScrollSpeedX", props);
+			CSProperty overlayScrollSpeedY = FindProperty("_MainTexScrollSpeedY", props);
+			CSProperty overlayBoundary = FindProperty("_OverlayBoundaryHandling", props);
+			CSProperty overlayColor = FindProperty("_OverlayColor", props);
 			
-			new CSCategory(Styles.distortionMapSettingsTitle, defaultStyle, me => {
-				CSProperty distortionType = FindProperty("_DistortionType", props);
-				CSProperty distortionMapRotation = FindProperty("_DistortionMapRotation", props);
-				CSProperty distortionAmplitude = FindProperty("_DistortionAmplitude", props);
-				CSProperty distortionRotation = FindProperty("_DistortionRotation", props);
-				CSProperty distortFlipbook = FindProperty("_DistortFlipbook", props);
-				
-				DisplayRegularProperty(me, distortionType);
-				DisplayRegularProperty(me, FindProperty("_DistortionTarget", props));
-				
-				switch ((int) distortionType.prop.floatValue) {
-					case 0:
-						DisplayRegularProperty(me, FindProperty("_BumpMap", props));
-						DisplayFloatWithSliderMode(me, distortionMapRotation);
-						DisplayFloatWithSliderMode(me, distortionAmplitude);
-						DisplayFloatWithSliderMode(me, distortionRotation);
-						DisplayFloatWithSliderMode(me, FindProperty("_BumpMapScrollSpeedX", props));
-						DisplayFloatWithSliderMode(me, FindProperty("_BumpMapScrollSpeedY", props));
-						break;
-					case 1:
-						DisplayRegularProperty(me, FindProperty("_MeltMap", props));
-						DisplayFloatWithSliderMode(me, distortionMapRotation);
-						DisplayFloatWithSliderMode(me, distortionAmplitude);
-						DisplayFloatWithSliderMode(me, distortionRotation);
-						DisplayFloatWithSliderMode(me, FindProperty("_MeltController", props));
-						DisplayFloatWithSliderMode(me, FindProperty("_MeltActivationScale", props));
-						break;
-				}
-				
-				DisplayRegularProperty(me, distortFlipbook);
-				
-				if (distortFlipbook.prop.floatValue != 0) {
-					DisplayIntField(me, FindProperty("_DistortFlipbookTotalFrames", props));
-					DisplayIntField(me, FindProperty("_DistortFlipbookStartFrame", props));
-					DisplayIntField(me, FindProperty("_DistortFlipbookRows", props));
-					DisplayIntField(me, FindProperty("_DistortFlipbookColumns", props));
-					DisplayFloatProperty(me, FindProperty("_DistortFlipbookFPS", props));
-				}
-				
-			}),
+			if (!cancerfree) BlendModePopup(me, FindProperty("_BlendMode", props));
 			
-			new CSCategory(Styles.overlaySettingsTitle, defaultStyle, me => {
-				CSProperty overlayImageType = FindProperty("_OverlayImageType", props);
-				CSProperty overlayImage = FindProperty("_MainTex", props);
-				CSProperty overlayRotation = FindProperty("_MainTexRotation", props);
-				CSProperty overlayPixelate = FindProperty("_PixelatedSampling", props);
-				CSProperty overlayScrollSpeedX = FindProperty("_MainTexScrollSpeedX", props);
-				CSProperty overlayScrollSpeedY = FindProperty("_MainTexScrollSpeedY", props);
-				CSProperty overlayBoundary = FindProperty("_OverlayBoundaryHandling", props);
-				CSProperty overlayColor = FindProperty("_OverlayColor", props);
-				
-				BlendModePopup(me, FindProperty("_BlendMode", props));
-				
-				DisplayRegularProperty(me, overlayImageType);
-				switch ((int) overlayImageType.prop.floatValue) {
-					// TODO: replace these with proper enums so there's no magic numbers
-					case 0:
-						DisplayRegularProperty(me, overlayBoundary);
-						DisplayRegularProperty(me, overlayPixelate);
-						me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
-						me.TextureScaleOffsetProperty(overlayImage.prop);
-						DisplayFloatWithSliderMode(me, overlayRotation);
-						if (overlayBoundary.prop.floatValue != 0) {
-							DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
-							DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
-						}
-						break;
-					case 1:
-						DisplayRegularProperty(me, overlayBoundary);
-						DisplayRegularProperty(me, overlayPixelate);
-						me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
-						me.TextureScaleOffsetProperty(overlayImage.prop);
-						DisplayFloatWithSliderMode(me, overlayRotation);
-						if (overlayBoundary.prop.floatValue != 0) {
-							DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
-							DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
-						}
-						DisplayIntField(me, FindProperty("_FlipbookTotalFrames", props));
-						DisplayIntField(me, FindProperty("_FlipbookStartFrame", props));
-						DisplayIntField(me, FindProperty("_FlipbookRows", props));
-						DisplayIntField(me, FindProperty("_FlipbookColumns", props));
-						DisplayFloatProperty(me, FindProperty("_FlipbookFPS", props));
-						break;
-					case 2:
-						DisplayRegularProperty(me, FindProperty("_OverlayCubemap", props));
-						DisplayColorProperty(me, overlayColor);
-						DisplayVec3WithSliderMode(
-							me,
-							"Rotation",
-							FindProperty("_OverlayCubemapRotationX", props),
-							FindProperty("_OverlayCubemapRotationY", props),
-							FindProperty("_OverlayCubemapRotationZ", props)
-						);
-						DisplayVec3WithSliderMode(
-							me,
-							"Rotation Speed",
-							FindProperty("_OverlayCubemapSpeedX", props),
-							FindProperty("_OverlayCubemapSpeedY", props),
-							FindProperty("_OverlayCubemapSpeedZ", props)
-						);
-						break;
-				}
-				
-				DisplayFloatRangeProperty(me, FindProperty("_BlendAmount", props));
-			}),
-			
-			new CSCategory(Styles.screenColorAdjustmentsTitle, defaultStyle, me => {
-				CSProperty colorBurningToggle = FindProperty("_Burn", props);
-				
-				DisplayVec3WithSliderMode(
-					me,
-					"HSV Add",
-					FindProperty("_HueAdd", props),
-					FindProperty("_SaturationAdd", props),
-					FindProperty("_ValueAdd", props)
-				);
-				DisplayVec3WithSliderMode(
-					me,
-					"HSV Multiply",
-					FindProperty("_HueMultiply", props),
-					FindProperty("_SaturationMultiply", props),
-					FindProperty("_ValueMultiply", props)
-				);
-				
-				DisplayFloatRangeProperty(me, FindProperty("_InversionAmount", props));
-				DisplayColorProperty(me, FindProperty("_Color", props));
-				BlendModePopup(me, FindProperty("_ScreenColorBlendMode", props));
-				
-				DisplayRegularProperty(me, colorBurningToggle);
-				if (colorBurningToggle.prop.floatValue == 1) {
-					DisplayFloatRangeProperty(me, FindProperty("_BurnLow", props));
-					DisplayFloatRangeProperty(me, FindProperty("_BurnHigh", props));
-				}
-			}),
-			
-			new CSCategory(Styles.screenTransformTitle, defaultStyle, me => {
-				DisplayRegularProperty(me, FindProperty("_ScreenBoundaryHandling", props));
-				DisplayRegularProperty(me, FindProperty("_ScreenReprojection", props));
-				DisplayFloatWithSliderMode(me, FindProperty("_Zoom", props));
-				DisplayRegularProperty(me, FindProperty("_Pixelation", props));
-				
-				CSProperty screenXOffsetR = FindProperty("_ScreenXOffsetR", props);
-				CSProperty screenXOffsetG = FindProperty("_ScreenXOffsetG", props);
-				CSProperty screenXOffsetB = FindProperty("_ScreenXOffsetB", props);
-				CSProperty screenXOffsetA = FindProperty("_ScreenXOffsetA", props);
-				CSProperty screenYOffsetR = FindProperty("_ScreenYOffsetR", props);
-				CSProperty screenYOffsetG = FindProperty("_ScreenYOffsetG", props);
-				CSProperty screenYOffsetB = FindProperty("_ScreenYOffsetB", props);
-				CSProperty screenYOffsetA = FindProperty("_ScreenYOffsetA", props);
-				CSProperty screenXMultiplierR = FindProperty("_ScreenXMultiplierR", props);
-				CSProperty screenXMultiplierG = FindProperty("_ScreenXMultiplierG", props);
-				CSProperty screenXMultiplierB = FindProperty("_ScreenXMultiplierB", props);
-				CSProperty screenXMultiplierA = FindProperty("_ScreenXMultiplierA", props);
-				CSProperty screenYMultiplierR = FindProperty("_ScreenYMultiplierR", props);
-				CSProperty screenYMultiplierG = FindProperty("_ScreenYMultiplierG", props);
-				CSProperty screenYMultiplierB = FindProperty("_ScreenYMultiplierB", props);
-				CSProperty screenYMultiplierA = FindProperty("_ScreenYMultiplierA", props);
-				
-				if (sliderMode) {
-					DisplayFloatRangeProperty(me, screenXOffsetA);
-					DisplayFloatRangeProperty(me, screenYOffsetA);
-					DisplayFloatRangeProperty(me, screenXOffsetR);
-					DisplayFloatRangeProperty(me, screenYOffsetR);
-					DisplayFloatRangeProperty(me, screenXOffsetG);
-					DisplayFloatRangeProperty(me, screenYOffsetG);
-					DisplayFloatRangeProperty(me, screenXOffsetB);
-					DisplayFloatRangeProperty(me, screenYOffsetB);
-					DisplayFloatRangeProperty(me, screenXMultiplierA);
-					DisplayFloatRangeProperty(me, screenYMultiplierA);
-					DisplayFloatRangeProperty(me, screenXMultiplierR);
-					DisplayFloatRangeProperty(me, screenYMultiplierR);
-					DisplayFloatRangeProperty(me, screenXMultiplierG);
-					DisplayFloatRangeProperty(me, screenYMultiplierG);
-					DisplayFloatRangeProperty(me, screenXMultiplierB);
-					DisplayFloatRangeProperty(me, screenYMultiplierB);
-				} else {
-					DisplayVec4Field(me, "Screen X Offset (RGB)", screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA);
-					DisplayVec4Field(me, "Screen Y Offset (RGB)", screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA);
-					DisplayVec4Field(me, "Screen X Multiplier (RGB)", screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA);
-					DisplayVec4Field(me, "Screen Y Multiplier (RGB)", screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA);
-				}
-				DisplayFloatRangeProperty(me, FindProperty("_ScreenRotationAngle", props));
-			}),
-			
-			new CSCategory(Styles.targetObjectSettingsTitle, defaultStyle, me => {
-				DisplayVec4Field(
-					me,
-					"Position",
-					FindProperty("_ObjectPositionX", props),
-					FindProperty("_ObjectPositionY", props),
-					FindProperty("_ObjectPositionZ", props),
-					FindProperty("_ObjectPositionA", props)
-				);
-				DisplayVec3Field(
-					me,
-					"Rotation",
-					FindProperty("_ObjectRotationX", props),
-					FindProperty("_ObjectRotationY", props),
-					FindProperty("_ObjectRotationZ", props)
-				);
-				DisplayVec4Field(
-					me,
-					"Scale",
-					FindProperty("_ObjectScaleX", props),
-					FindProperty("_ObjectScaleY", props),
-					FindProperty("_ObjectScaleZ", props),
-					FindProperty("_ObjectScaleA", props)
-				);
-				DisplayRegularProperty(me, FindProperty("_Puffiness", props));
-			}),
-			
-			new CSCategory(Styles.stencilTitle, defaultStyle, me => {
-				DisplayIntSlider(me, FindProperty("_StencilRef", props), 0, 255);
-				DisplayRegularProperty(me, FindProperty("_StencilComp", props));
-				DisplayRegularProperty(me, FindProperty("_StencilPassOp", props));
-				DisplayRegularProperty(me, FindProperty("_StencilFailOp", props));
-				DisplayRegularProperty(me, FindProperty("_StencilZFailOp", props));
-				DisplayIntSlider(me, FindProperty("_StencilReadMask", props), 0, 255);
-				DisplayIntSlider(me, FindProperty("_StencilWriteMask", props), 0, 255);
-			}),
-			
-			new CSCategory(Styles.maskingTitle, defaultStyle, me => {
-				DisplayRegularProperty(me, FindProperty("_DistortionMask", props));
-				DisplayFloatRangeProperty(me, FindProperty("_DistortionMaskOpacity", props));
-				
-				DisplayRegularProperty(me, FindProperty("_OverlayMask", props));
-				DisplayFloatRangeProperty(me, FindProperty("_OverlayMaskOpacity", props));
-				
-				DisplayRegularProperty(me, FindProperty("_OverallEffectMask", props));
-				DisplayFloatRangeProperty(me, FindProperty("_OverallEffectMaskOpacity", props));
-				BlendModePopup(me, FindProperty("_OverallEffectMaskBlendMode", props));
-
-				EditorGUILayout.Space();
-				
-				DisplayRegularProperty(me, FindProperty("_OverallAmplitudeMask", props));
-				DisplayFloatRangeProperty(me, FindProperty("_OverallAmplitudeMaskOpacity", props));
-			}),
-			
-			new CSCategory(Styles.miscSettingsTitle, defaultStyle, me => {
-				DisplayRegularProperty(me, FindProperty("_CullMode", props));
-				DisplayRegularProperty(me, FindProperty("_ZTest", props));
-				DisplayRegularProperty(me, FindProperty("_ZWrite", props));
-				ShowColorMaskFlags(me, FindProperty("_ColorMask", props));
-				DisplayRegularProperty(me, FindProperty("_MirrorMode", props));
-				DisplayRegularProperty(me, FindProperty("_EyeSelector", props));
-				DisplayRegularProperty(me, FindProperty("_PlatformSelector", props));
-				CSProperty projectionType = FindProperty("_ProjectionType", props);
-				DisplayRegularProperty(me, projectionType);
-				if (projectionType.prop.floatValue != 2) {
+			DisplayRegularProperty(me, overlayImageType);
+			switch ((int) overlayImageType.prop.floatValue) {
+				// TODO: replace these with proper enums so there's no magic numbers
+				case 0:
+					DisplayRegularProperty(me, overlayBoundary);
+					DisplayRegularProperty(me, overlayPixelate);
+					me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
+					me.TextureScaleOffsetProperty(overlayImage.prop);
+					DisplayFloatWithSliderMode(me, overlayRotation);
+					if (overlayBoundary.prop.floatValue != 0) {
+						DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
+						DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
+					}
+					break;
+				case 1:
+					DisplayRegularProperty(me, overlayBoundary);
+					DisplayRegularProperty(me, overlayPixelate);
+					me.TexturePropertySingleLine(Styles.overlayImageText, overlayImage.prop, overlayColor.prop);
+					me.TextureScaleOffsetProperty(overlayImage.prop);
+					DisplayFloatWithSliderMode(me, overlayRotation);
+					if (overlayBoundary.prop.floatValue != 0) {
+						DisplayFloatWithSliderMode(me, overlayScrollSpeedX);
+						DisplayFloatWithSliderMode(me, overlayScrollSpeedY);
+					}
+					DisplayIntField(me, FindProperty("_FlipbookTotalFrames", props));
+					DisplayIntField(me, FindProperty("_FlipbookStartFrame", props));
+					DisplayIntField(me, FindProperty("_FlipbookRows", props));
+					DisplayIntField(me, FindProperty("_FlipbookColumns", props));
+					DisplayFloatProperty(me, FindProperty("_FlipbookFPS", props));
+					break;
+				case 2:
+					DisplayRegularProperty(me, FindProperty("_OverlayCubemap", props));
+					DisplayColorProperty(me, overlayColor);
 					DisplayVec3WithSliderMode(
 						me,
-						Styles.projectionRotationText,
-						FindProperty("_ProjectionRotX", props),
-						FindProperty("_ProjectionRotY", props),
-						FindProperty("_ProjectionRotZ", props)
+						"Rotation",
+						FindProperty("_OverlayCubemapRotationX", props),
+						FindProperty("_OverlayCubemapRotationY", props),
+						FindProperty("_OverlayCubemapRotationZ", props)
 					);
-				}
-			}),
+					DisplayVec3WithSliderMode(
+						me,
+						"Rotation Speed",
+						FindProperty("_OverlayCubemapSpeedX", props),
+						FindProperty("_OverlayCubemapSpeedY", props),
+						FindProperty("_OverlayCubemapSpeedZ", props)
+					);
+					break;
+			}
 			
-			new CSCategory(Styles.renderQueueExportTitle, defaultStyle, me => {
-				Material material = me.target as Material;
+			DisplayFloatRangeProperty(me, FindProperty("_BlendAmount", props));
+		}));
+		if (cancerfree) categories.Add(new CSCategory(Styles.blendSettingsTitle, defaultStyle, me => {
+			DisplayRegularProperty(me, FindProperty("_BlendOp", props));
+			DisplayRegularProperty(me, FindProperty("_BlendSource", props));
+			DisplayRegularProperty(me, FindProperty("_BlendDestination", props));
+		}));
+		if (!cancerfree) categories.Add(new CSCategory(Styles.screenColorAdjustmentsTitle, defaultStyle, me => {
+			CSProperty colorBurningToggle = FindProperty("_Burn", props);
+			
+			DisplayVec3WithSliderMode(
+				me,
+				"HSV Add",
+				FindProperty("_HueAdd", props),
+				FindProperty("_SaturationAdd", props),
+				FindProperty("_ValueAdd", props)
+			);
+			DisplayVec3WithSliderMode(
+				me,
+				"HSV Multiply",
+				FindProperty("_HueMultiply", props),
+				FindProperty("_SaturationMultiply", props),
+				FindProperty("_ValueMultiply", props)
+			);
+			
+			DisplayFloatRangeProperty(me, FindProperty("_InversionAmount", props));
+			DisplayColorProperty(me, FindProperty("_Color", props));
+			
+			BlendModePopup(me, FindProperty("_ScreenColorBlendMode", props));
+			
+			DisplayRegularProperty(me, colorBurningToggle);
+			if (colorBurningToggle.prop.floatValue == 1) {
+				DisplayFloatRangeProperty(me, FindProperty("_BurnLow", props));
+				DisplayFloatRangeProperty(me, FindProperty("_BurnHigh", props));
+			}
+		}));
+		if (!cancerfree) categories.Add(new CSCategory(Styles.screenTransformTitle, defaultStyle, me => {
+			DisplayRegularProperty(me, FindProperty("_ScreenBoundaryHandling", props));
+			DisplayRegularProperty(me, FindProperty("_ScreenReprojection", props));
+			DisplayFloatWithSliderMode(me, FindProperty("_Zoom", props));
+			DisplayRegularProperty(me, FindProperty("_Pixelation", props));
+			
+			CSProperty screenXOffsetR = FindProperty("_ScreenXOffsetR", props);
+			CSProperty screenXOffsetG = FindProperty("_ScreenXOffsetG", props);
+			CSProperty screenXOffsetB = FindProperty("_ScreenXOffsetB", props);
+			CSProperty screenXOffsetA = FindProperty("_ScreenXOffsetA", props);
+			CSProperty screenYOffsetR = FindProperty("_ScreenYOffsetR", props);
+			CSProperty screenYOffsetG = FindProperty("_ScreenYOffsetG", props);
+			CSProperty screenYOffsetB = FindProperty("_ScreenYOffsetB", props);
+			CSProperty screenYOffsetA = FindProperty("_ScreenYOffsetA", props);
+			CSProperty screenXMultiplierR = FindProperty("_ScreenXMultiplierR", props);
+			CSProperty screenXMultiplierG = FindProperty("_ScreenXMultiplierG", props);
+			CSProperty screenXMultiplierB = FindProperty("_ScreenXMultiplierB", props);
+			CSProperty screenXMultiplierA = FindProperty("_ScreenXMultiplierA", props);
+			CSProperty screenYMultiplierR = FindProperty("_ScreenYMultiplierR", props);
+			CSProperty screenYMultiplierG = FindProperty("_ScreenYMultiplierG", props);
+			CSProperty screenYMultiplierB = FindProperty("_ScreenYMultiplierB", props);
+			CSProperty screenYMultiplierA = FindProperty("_ScreenYMultiplierA", props);
+			
+			if (sliderMode) {
+				DisplayFloatRangeProperty(me, screenXOffsetA);
+				DisplayFloatRangeProperty(me, screenYOffsetA);
+				DisplayFloatRangeProperty(me, screenXOffsetR);
+				DisplayFloatRangeProperty(me, screenYOffsetR);
+				DisplayFloatRangeProperty(me, screenXOffsetG);
+				DisplayFloatRangeProperty(me, screenYOffsetG);
+				DisplayFloatRangeProperty(me, screenXOffsetB);
+				DisplayFloatRangeProperty(me, screenYOffsetB);
+				DisplayFloatRangeProperty(me, screenXMultiplierA);
+				DisplayFloatRangeProperty(me, screenYMultiplierA);
+				DisplayFloatRangeProperty(me, screenXMultiplierR);
+				DisplayFloatRangeProperty(me, screenYMultiplierR);
+				DisplayFloatRangeProperty(me, screenXMultiplierG);
+				DisplayFloatRangeProperty(me, screenYMultiplierG);
+				DisplayFloatRangeProperty(me, screenXMultiplierB);
+				DisplayFloatRangeProperty(me, screenYMultiplierB);
+			} else {
+				DisplayVec4Field(me, "Screen X Offset (RGB)", screenXOffsetR, screenXOffsetG, screenXOffsetB, screenXOffsetA);
+				DisplayVec4Field(me, "Screen Y Offset (RGB)", screenYOffsetR, screenYOffsetG, screenYOffsetB, screenYOffsetA);
+				DisplayVec4Field(me, "Screen X Multiplier (RGB)", screenXMultiplierR, screenXMultiplierG, screenXMultiplierB, screenXMultiplierA);
+				DisplayVec4Field(me, "Screen Y Multiplier (RGB)", screenYMultiplierR, screenYMultiplierG, screenYMultiplierB, screenYMultiplierA);
+			}
+			DisplayFloatRangeProperty(me, FindProperty("_ScreenRotationAngle", props));
+		}));
+		categories.Add(new CSCategory(Styles.targetObjectSettingsTitle, defaultStyle, me => {
+			DisplayVec4Field(
+				me,
+				"Position",
+				FindProperty("_ObjectPositionX", props),
+				FindProperty("_ObjectPositionY", props),
+				FindProperty("_ObjectPositionZ", props),
+				FindProperty("_ObjectPositionA", props)
+			);
+			DisplayVec3Field(
+				me,
+				"Rotation",
+				FindProperty("_ObjectRotationX", props),
+				FindProperty("_ObjectRotationY", props),
+				FindProperty("_ObjectRotationZ", props)
+			);
+			DisplayVec4Field(
+				me,
+				"Scale",
+				FindProperty("_ObjectScaleX", props),
+				FindProperty("_ObjectScaleY", props),
+				FindProperty("_ObjectScaleZ", props),
+				FindProperty("_ObjectScaleA", props)
+			);
+			DisplayRegularProperty(me, FindProperty("_Puffiness", props));
+		}));
+		categories.Add(new CSCategory(Styles.stencilTitle, defaultStyle, me => {
+			DisplayIntSlider(me, FindProperty("_StencilRef", props), 0, 255);
+			DisplayRegularProperty(me, FindProperty("_StencilComp", props));
+			DisplayRegularProperty(me, FindProperty("_StencilPassOp", props));
+			DisplayRegularProperty(me, FindProperty("_StencilFailOp", props));
+			DisplayRegularProperty(me, FindProperty("_StencilZFailOp", props));
+			DisplayIntSlider(me, FindProperty("_StencilReadMask", props), 0, 255);
+			DisplayIntSlider(me, FindProperty("_StencilWriteMask", props), 0, 255);
+		}));
+		categories.Add(new CSCategory(Styles.maskingTitle, defaultStyle, me => {
+			if (!cancerfree) {
+				DisplayRegularProperty(me, FindProperty("_DistortionMask", props));
+				DisplayFloatRangeProperty(me, FindProperty("_DistortionMaskOpacity", props));
+			}
+			
+			DisplayRegularProperty(me, FindProperty("_OverlayMask", props));
+			DisplayFloatRangeProperty(me, FindProperty("_OverlayMaskOpacity", props));
+			
+			DisplayRegularProperty(me, FindProperty("_OverallEffectMask", props));
+			DisplayFloatRangeProperty(me, FindProperty("_OverallEffectMaskOpacity", props));
+			BlendModePopup(me, FindProperty("_OverallEffectMaskBlendMode", props));
+
+			EditorGUILayout.Space();
+			
+			DisplayRegularProperty(me, FindProperty("_OverallAmplitudeMask", props));
+			DisplayFloatRangeProperty(me, FindProperty("_OverallAmplitudeMaskOpacity", props));
+		}));
+		categories.Add(new CSCategory(Styles.miscSettingsTitle, defaultStyle, me => {
+			DisplayRegularProperty(me, FindProperty("_CullMode", props));
+			DisplayRegularProperty(me, FindProperty("_ZTest", props));
+			DisplayRegularProperty(me, FindProperty("_ZWrite", props));
+			ShowColorMaskFlags(me, FindProperty("_ColorMask", props));
+			DisplayRegularProperty(me, FindProperty("_MirrorMode", props));
+			DisplayRegularProperty(me, FindProperty("_EyeSelector", props));
+			DisplayRegularProperty(me, FindProperty("_PlatformSelector", props));
+			CSProperty projectionType = FindProperty("_ProjectionType", props);
+			DisplayRegularProperty(me, projectionType);
+			if (projectionType.prop.floatValue != 2) {
+				DisplayVec3WithSliderMode(
+					me,
+					Styles.projectionRotationText,
+					FindProperty("_ProjectionRotX", props),
+					FindProperty("_ProjectionRotY", props),
+					FindProperty("_ProjectionRotZ", props)
+				);
+			}
+		}));
+		if (!cancerfree) categories.Add(new CSCategory(Styles.renderQueueExportTitle, defaultStyle, me => {
+			Material material = me.target as Material;
+			
+			customRenderQueue = EditorGUILayout.IntSlider(Styles.customRenderQueueSliderText, customRenderQueue, 0, 5000);
+			if (GUILayout.Button(Styles.exportCustomRenderQueueButtonText)) {
+				int relativeQueue = customRenderQueue - ((int) UnityEngine.Rendering.RenderQueue.Transparent);
+				string newQueueString = "Transparent" + (relativeQueue >= 0 ? "+" : "") + relativeQueue;
+				string shaderName = "RedMage/Cancer" + (cancerfree ? "free" : "space");
+				string newShaderPath = shaderName + " Queue " + customRenderQueue;
 				
-				customRenderQueue = EditorGUILayout.IntSlider(Styles.customRenderQueueSliderText, customRenderQueue, 0, 5000);
-				if (GUILayout.Button(Styles.exportCustomRenderQueueButtonText)) {
-					int relativeQueue = customRenderQueue - ((int) UnityEngine.Rendering.RenderQueue.Transparent);
-					string newQueueString = "Transparent" + (relativeQueue >= 0 ? "+" : "") + relativeQueue;
-					string newShaderPath = "RedMage/Cancerspace Queue " + customRenderQueue;
-					
-					string shaderPath = AssetDatabase.GetAssetPath(material.shader.GetInstanceID());
-					string outputLocation = shaderPath.Substring(0, shaderPath.Replace("\\", "/").LastIndexOf('/') + 1) + "CancerspaceQueue" + customRenderQueue + ".shader";
-					
-					try {
-						using (StreamWriter sw = new StreamWriter(outputLocation)) {
-							using (StreamReader sr = new StreamReader(shaderPath)) {
-								string line;
-								while ((line = sr.ReadLine()) != null) {
-									if (line.Contains("\"Transparent+")) {
-										Regex rx = new Regex(@"Transparent[+-]\d+", RegexOptions.Compiled);
-										MatchCollection matches = rx.Matches(line);
-										foreach (Match match in matches) {
-											line = line.Replace(match.Value, newQueueString);
-										}
-									} else if (line.Contains("RedMage/Cancerspace")) {
-										Regex rx = new Regex("\"[^\"]+\"", RegexOptions.Compiled);
-										MatchCollection matches = rx.Matches(line);
-										foreach (Match match in matches) {
-											line = line.Replace(match.Value, "\"" + newShaderPath + "\"");
-										}
+				string shaderPath = AssetDatabase.GetAssetPath(material.shader.GetInstanceID());
+				string outputLocation = shaderPath.Substring(0, shaderPath.Replace("\\", "/").LastIndexOf('/') + 1) + "CancerspaceQueue" + customRenderQueue + ".shader";
+				
+				try {
+					using (StreamWriter sw = new StreamWriter(outputLocation)) {
+						using (StreamReader sr = new StreamReader(shaderPath)) {
+							string line;
+							while ((line = sr.ReadLine()) != null) {
+								if (line.Contains("\"Transparent+")) {
+									Regex rx = new Regex(@"Transparent[+-]\d+", RegexOptions.Compiled);
+									MatchCollection matches = rx.Matches(line);
+									foreach (Match match in matches) {
+										line = line.Replace(match.Value, newQueueString);
 									}
-									line = line.Replace("_Garb", "_Garb" + customRenderQueue);
-									sw.Write(line);
-									sw.WriteLine();
+								} else if (line.Contains(shaderName)) {
+									Regex rx = new Regex("\"[^\"]+\"", RegexOptions.Compiled);
+									MatchCollection matches = rx.Matches(line);
+									foreach (Match match in matches) {
+										line = line.Replace(match.Value, "\"" + newShaderPath + "\"");
+									}
 								}
+								if (!cancerfree) line = line.Replace("_Garb", "_Garb" + customRenderQueue);
+								sw.Write(line);
+								sw.WriteLine();
 							}
 						}
-					} catch (Exception e) {
-						Debug.Log("AAAGAGHH WHAT? HOW? WHY??? WHAT ARE YOU DOING? Shader file could not be read / written.");
-						Debug.Log(e.Message);
-						return;
 					}
-					
-					AssetDatabase.Refresh();
-					
-					material.shader = Shader.Find(newShaderPath);
-					
-					AssetDatabase.SaveAssets();
+				} catch (Exception e) {
+					Debug.Log("AAAGAGHH WHAT? HOW? WHY??? WHAT ARE YOU DOING? Shader file could not be read / written.");
+					Debug.Log(e.Message);
+					return;
 				}
-			}),
-		};
+				
+				AssetDatabase.Refresh();
+				
+				material.shader = Shader.Find(newShaderPath);
+				
+				AssetDatabase.SaveAssets();
+			}
+		}));
 		
 		EditorGUIUtility.labelWidth = 0f;
 		
@@ -482,9 +500,9 @@ public class CancerspaceInspector : ShaderGUI {
 			randomizingCurrentPass = GUILayout.Button("Randomize Values");
 		}
 		
-		int oldflags = categoryExpansionFlags;
+		int oldflags = GetExpansionFlags();
 		int newflags = 0;
-		for (int i = 0; i < categories.Length; ++i) {
+		for (int i = 0; i < categories.Count; ++i) {
 			bool expanded = EditorGUILayout.Foldout((oldflags & (1 << i)) != 0, categories[i].name, true, categories[i].style);
 			newflags |= (expanded ? 1 : 0) << i;
 			if (expanded) {
@@ -493,10 +511,10 @@ public class CancerspaceInspector : ShaderGUI {
 				EditorGUI.indentLevel--;
 			}
 		}
-		categoryExpansionFlags = newflags;
+		SetExpansionFlags(newflags);
 		
 		
-		GUI.enabled = false;
+		if (!cancerfree) GUI.enabled = false;
 		materialEditor.RenderQueueField();
 		
 		randomizingCurrentPass = false;
