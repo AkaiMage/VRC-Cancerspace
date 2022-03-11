@@ -202,7 +202,8 @@
 			#define CANCERFREE
 			#define SCREENTEXNAME _Garb
 			#define SCREEN_SIZE (float4(rcp(_ScreenParams.xy), _ScreenParams.xy))
-			sampler2D _Garb;
+			#include "UnityCG.cginc"
+			UNITY_DECLARE_SCREENSPACE_TEXTURE(_Garb);
 			float4 _Garb_TexelSize;
 			#include "Cancercore.cginc"
 			#pragma vertex vert

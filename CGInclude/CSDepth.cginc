@@ -14,7 +14,7 @@ float CorrectedLinearEyeDepth(float z, float B) {
 }
 
 float calculateCameraDepth(float2 screenPos, float4 worldDir, float perspectiveDivide) {
-	float z = tex2Dlod(_CameraDepthTexture, float4(screenPos * perspectiveDivide, 0, 0)).r;
+	float z = SAMPLE_DEPTH_TEXTURE_LOD(_CameraDepthTexture, float4(screenPos * perspectiveDivide, 0, 0));
 	return CorrectedLinearEyeDepth(z, worldDir.w);
 }
 

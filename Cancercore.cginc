@@ -1,7 +1,6 @@
 ﻿#ifndef CANCERCORE_CGINC
 #define CANCERCORE_CGINC
 
-#include "UnityCG.cginc"
 #include "AutoLight.cginc"
 
 struct appdata {
@@ -10,6 +9,8 @@ struct appdata {
 	float4 uv : TEXCOORD0;
 	float4 uv2 : TEXCOORD1;
 	float4 color : COLOR;
+	
+	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
 struct v2f {
@@ -21,6 +22,8 @@ struct v2f {
 	float4 uv : TEXCOORD4;
 	float4 worldDir : TEXCOORD5;
 	float4 color : TEXCOORD6;
+	
+	UNITY_VERTEX_OUTPUT_STEREO
 };
 
 #include "CGInclude/CSProps.cginc"
@@ -215,6 +218,11 @@ float4 calculateOverlayColor(float2 screenSpaceOverlayUV, float2 distortion, flo
 v2f vert (appdata v) {
 	v2f o;
 	
+	// SPS-I setup
+	UNITY_SETUP_INSTANCE_ID(v);
+	UNITY_INITIALIZE_OUTPUT(v2f, o);
+	UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+	
 	float2 uv = v.uv.xy;
 	float3 particleCenter = float3(v.uv.zw, v.uv2.x);
 	float particleAge01 = v.uv2.y;
@@ -294,6 +302,9 @@ v2f vert (appdata v) {
 }
 
 fixed4 frag (v2f i) : SV_Target {
+	// SPS-I setup
+	UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+
 	float timeCircularMod = fmod(_Time.y, UNITY_TWO_PI);
 	
 	float3 viewVec = mul(unity_ObjectToWorld, float4(0,0,0,1)).xyz - _WorldSpaceCameraPos;
@@ -389,9 +400,9 @@ fixed4 frag (v2f i) : SV_Target {
 				col[j] = color[j];
 			} else {
 				UNITY_BRANCH if (_ScreenReprojection) {
-					col[j] = tex2D(SCREENTEXNAME, uv * float2(VRFix, 1))[j];
+					col[j] = UNITY_SAMPLE_SCREENSPACE_TEXTURE(SCREENTEXNAME, uv * float2(VRFix, 1))[j];
 				} else {
-					col[j] = tex2D(SCREENTEXNAME, uv)[j];
+					col[j] = UNITY_SAMPLE_SCREENSPACE_TEXTURE(SCREENTEXNAME, uv)[j];
 				}
 			}
 		}
@@ -419,7 +430,7 @@ fixed4 frag (v2f i) : SV_Target {
 	finalScreenColor = blend(finalScreenColor, _Color.rgb, _ScreenColorBlendMode, allAmp);
 	float overallMaskFalloff = allAmp;
 	if (_OverallEffectMaskBlendMode == BLENDMODE_NORMAL)  overallMaskFalloff = 1 - step(_MaxFalloff, effectDistance);
-	finalScreenColor = blend(tex2D(SCREENTEXNAME, i.projPos.xy / i.projPos.w).rgb, finalScreenColor, _OverallEffectMaskBlendMode, overallMask * overallMaskFalloff);
+	finalScreenColor = blend(UNITY_SAMPLE_SCREENSPACE_TEXTURE(SCREENTEXNAME, i.projPos.xy / i.projPos.w).rgb, finalScreenColor, _OverallEffectMaskBlendMode, overallMask * overallMaskFalloff);
 	
 	return float4(finalScreenColor, 1);
 #endif
