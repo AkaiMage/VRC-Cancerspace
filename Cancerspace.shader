@@ -163,7 +163,7 @@
 		[Enum(Both, 0, Desktop, 1, VR, 2)] _PlatformSelector ("Platform Discrimination", Int) = 0
 	}
 	SubShader {
-		Tags { "Queue" = "Transparent+3" }
+		Tags { "Queue" = "Transparent+3" "VRCFallback"="Hidden" }
 		
 		Stencil {
 			Ref [_StencilRef]

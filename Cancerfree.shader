@@ -177,7 +177,7 @@
 		[Enum(UnityEngine.Rendering.BlendOp)] _BlendOp ("Blend Mode", Int) = 21
 	}
 	SubShader {
-		Tags { "Queue" = "Transparent+3" }
+		Tags { "Queue" = "Transparent+3" "VRCFallback"="Hidden" }
 		
 		Stencil {
 			Ref [_StencilRef]
