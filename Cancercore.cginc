@@ -314,9 +314,9 @@ fixed4 frag (v2f i) : SV_Target {
 	float depth = calculateCameraDepth(i.depthPos.xy, i.worldDir, rcp(i.pos.w));
 	
 	float VRFix = 1;
-	#if defined(USING_STEREO_MATRICES)
+#if defined(UNITY_SINGLE_PASS_STEREO)
 	VRFix = .5;
-	#endif
+#endif
 	
 	float3 triplanarWorld = depth * normalize(i.posWorld - _WorldSpaceCameraPos) + _WorldSpaceCameraPos;
 	

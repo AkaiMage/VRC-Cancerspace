@@ -13,9 +13,9 @@ float2 computeScreenSpaceOverlayUV(float3 worldSpacePos, float2 screenRes) {
 	float3 viewSpace = mul(UNITY_MATRIX_V, worldSpacePos - _WorldSpaceCameraPos);
 	float2 adjusted = viewSpace.xy / viewSpace.z;
 	float width = screenRes.x;
-	#if defined(USING_STEREO_MATRICES)
+#if defined(UNITY_SINGLE_PASS_STEREO)
 	width *= .5;
-	#endif
+#endif
 	float height = screenRes.y;
 	
 	return .5 * (1 - adjusted * float2((height*(width+1))/(width*(height+1)), 1));
