@@ -369,7 +369,7 @@ fixed4 frag (v2f i) : SV_Target {
 		// FIXME: does this line need VRFix? i think it might.
 		float2 sampleUV = grabUV + (blurNoiseRand.y * allAmp * _BlurRadius * float2(s, c)) / (SCREEN_SIZE.zw);
 		
-		float4 col;
+		float4 col = 0;
 		
 		UNITY_UNROLL for (int j = 0; j < 3; ++j) {
 			float2 multiplier = float2(_ScreenXMultiplier[j] * _ScreenXMultiplier.a, _ScreenYMultiplier[j] * _ScreenYMultiplier.a);
@@ -398,11 +398,16 @@ fixed4 frag (v2f i) : SV_Target {
 			
 			if (_ScreenBoundaryHandling == BOUNDARYMODE_OVERLAY && (saturate(uv.x) != uv.x || saturate(uv.y) != uv.y)) {
 				col[j] = color[j];
+				col.a = max(col.a, color.a);
 			} else {
 				UNITY_BRANCH if (_ScreenReprojection) {
-					col[j] = UNITY_SAMPLE_SCREENSPACE_TEXTURE(SCREENTEXNAME, uv * float2(VRFix, 1))[j];
+					float4 testColor = UNITY_SAMPLE_SCREENSPACE_TEXTURE(SCREENTEXNAME, uv * float2(VRFix, 1));
+					col[j] = testColor[j];
+					col.a = max(col.a, testColor.a);
 				} else {
-					col[j] = UNITY_SAMPLE_SCREENSPACE_TEXTURE(SCREENTEXNAME, uv)[j];
+					float4 testColor = UNITY_SAMPLE_SCREENSPACE_TEXTURE(SCREENTEXNAME, uv);
+					col[j] = testColor[j];
+					col.a = max(col.a, testColor.a);
 				}
 			}
 		}
@@ -424,6 +429,10 @@ fixed4 frag (v2f i) : SV_Target {
 	
 	// lol one-liner for exposure and shit, GOML
 	if (_Burn) grabCol.rgb = lerp(grabCol.rgb, unboundedSmoothstep(_BurnLow, _BurnHigh, grabCol.rgb), allAmp);
+
+	float finalScreenAlpha = grabCol.a;
+	finalScreenAlpha *= _Color.a;
+	finalScreenAlpha *= color.a;
 	
 	float3 finalScreenColor = lerp(grabCol, float4(1 - grabCol.rgb, grabCol.a), _InversionAmount * allAmp);
 	finalScreenColor = blend(finalScreenColor, color.rgb, _BlendMode, _BlendAmount * color.a * overlayMask * allAmp);
@@ -432,7 +441,7 @@ fixed4 frag (v2f i) : SV_Target {
 	if (_OverallEffectMaskBlendMode == BLENDMODE_NORMAL)  overallMaskFalloff = 1 - step(_MaxFalloff, effectDistance);
 	finalScreenColor = blend(UNITY_SAMPLE_SCREENSPACE_TEXTURE(SCREENTEXNAME, i.projPos.xy / i.projPos.w).rgb, finalScreenColor, _OverallEffectMaskBlendMode, overallMask * overallMaskFalloff);
 	
-	return float4(finalScreenColor, 1);
+	return float4(finalScreenColor, finalScreenAlpha);
 #endif
 }
 
